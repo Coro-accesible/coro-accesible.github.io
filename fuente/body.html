@@ -1,0 +1,255 @@
+
+<a class="skip" href="#transporte">Saltar a la reproducción</a>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>Corale</h1>
+      <p>Ensayo coral con voz sintética</p>
+    </div>
+    <ul class="menubar" id="menubar" role="menubar" aria-label="Menú principal"></ul>
+  </div>
+  <div class="wrap fileline" id="fileLine">Partitura: <b id="fileName">ninguna</b><span id="fileBadge"></span></div>
+  <input id="fileInput" type="file" accept=".musicxml,.mxl,.xml,.brf,.brl,.txt" hidden>
+</header>
+
+<section id="transporte" class="transport" role="application" aria-label="Barra de reproducción" aria-describedby="transHint" tabindex="-1">
+  <p id="transHint" class="sr-only">Teclas en esta barra: P reproduce o pausa y, al pulsarla de nuevo, continúa desde donde quedó; S detiene y vuelve al inicio; flechas izquierda y derecha, compás anterior y siguiente; A dice la posición; M activa el metrónomo; L repite la sección. Tabulador pasa de un botón a otro.</p>
+  <div class="wrap">
+    <div class="tbtns">
+      <button id="btnPlay" class="primary play" aria-keyshortcuts="Control+Shift+Space Alt+Shift+P" disabled>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path id="playIcon" fill="currentColor" d="M7 4l13 8-13 8z"/></svg>
+        <span id="playLabel">Reproducir</span>
+      </button>
+      <button id="btnStop" aria-keyshortcuts="Alt+Shift+S" disabled>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" fill="currentColor"/></svg>
+        Detener
+      </button>
+      <button id="btnPrev" aria-keyshortcuts="Alt+Shift+ArrowLeft" disabled>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+        <span><span class="lbl-long">Compás </span>anterior</span>
+      </button>
+      <button id="btnNext" aria-keyshortcuts="Alt+Shift+ArrowRight" disabled>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+        <span><span class="lbl-long">Compás </span>siguiente</span>
+      </button>
+    </div>
+    <div class="pos" id="posBox" aria-hidden="true">
+      <span>Compás <b id="posMeasure">–</b><span id="posOf"></span></span>
+      <span>Pulso <b id="posBeat">–</b></span>
+      <span id="posTime">0:00 / 0:00</span>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="chkMetro" aria-keyshortcuts="Alt+Shift+M"> Metrónomo</label>
+      <label><input type="checkbox" id="chkCount"> Compás de entrada</label>
+      <label><input type="checkbox" id="chkLoop" aria-keyshortcuts="Control+Shift+L Alt+Shift+L"> Repetir sección</label>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="statusline">
+    <span id="statusText">Iniciando…</span>
+    <progress id="prog" max="100" value="0" hidden aria-label="Progreso de generación de voces"></progress>
+  </div>
+  <ul class="warnlist" id="warnList" hidden></ul>
+  <div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="liveA" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+</div>
+
+<main class="wrap grid" id="main">
+  <div class="col">
+    <section class="panel" id="panelLyrics" aria-labelledby="hLetra">
+      <div class="panel-head">
+        <h2 id="hLetra" tabindex="-1">Letra</h2>
+        <div class="tools">
+          <label for="selLyrTrack">Voz</label>
+          <select id="selLyrTrack"></select>
+        </div>
+      </div>
+      <div class="lyrics" id="lyrics" aria-hidden="true">
+        <div class="lyr-empty">La letra aparecerá aquí, sílaba por sílaba, mientras suena.</div>
+      </div>
+      <details class="fulltext" id="fullWrap">
+        <summary>Letra completa de esta voz</summary>
+        <p id="fullText"></p>
+      </details>
+    </section>
+
+    <section class="panel" id="panelScore" aria-labelledby="hPart">
+      <div class="panel-head">
+        <h2 id="hPart" tabindex="-1">Partitura</h2>
+        <div class="tools">
+          <button id="btnPgPrev" aria-label="Página anterior de la partitura">‹</button>
+          <span id="pgInfo" class="pager">–</span>
+          <button id="btnPgNext" aria-label="Página siguiente de la partitura">›</button>
+          <span id="zoomVal" class="pager">Zoom 55 %</span>
+        </div>
+      </div>
+      <div class="score-wrap" id="scoreWrap" role="img" aria-label="Partitura">
+        <div class="score-msg" id="scoreMsg">Cargando el visor de partituras…</div>
+        <div id="score"></div>
+      </div>
+      <p class="hint">Con el ratón, haga clic en una nota para empezar desde ahí. El zoom está en el menú Ver.</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel" id="panelMixer" aria-labelledby="hMix">
+      <div class="panel-head"><h2 id="hMix" tabindex="-1">Mezclador</h2></div>
+      <div class="mixer">
+        <div class="preset">
+          <div class="field">
+            <label for="selMine">Mi voz</label>
+            <select id="selMine"></select>
+          </div>
+          <div class="field">
+            <label for="selMode">Modo de práctica</label>
+            <select id="selMode">
+              <option value="all">Todas las voces iguales</option>
+              <option value="lead">Mi voz destacada</option>
+              <option value="solo">Solo mi voz</option>
+              <option value="minus">Todas menos mi voz (para cantarla yo)</option>
+            </select>
+          </div>
+        </div>
+        <div id="tracks" class="mixer"></div>
+        <div class="trow">
+          <label for="rngMaster">Volumen general</label>
+          <input type="range" id="rngMaster" min="0" max="100" value="85">
+          <output for="rngMaster" id="outMaster">85</output>
+        </div>
+        <div class="trow">
+          <label for="rngMetro">Metrónomo</label>
+          <input type="range" id="rngMetro" min="0" max="100" value="60">
+          <output for="rngMetro" id="outMetro">60</output>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panelSettings" aria-labelledby="hSet">
+      <div class="panel-head"><h2 id="hSet" tabindex="-1">Ajustes</h2></div>
+      <div class="settings">
+        <div class="field">
+          <label for="rngSpeed">Velocidad: <span id="speedVal">100 %</span></label>
+          <input type="range" id="rngSpeed" min="40" max="150" step="5" value="100" aria-keyshortcuts="Alt+Shift+ArrowUp Alt+Shift+ArrowDown">
+          <p class="hint" id="speedHint">Las voces se vuelven a generar al cambiarla.</p>
+        </div>
+        <div class="field">
+          <label for="numTrans">Transportar (semitonos)</label>
+          <div class="inline"><input type="number" id="numTrans" min="-12" max="12" step="1" value="0"></div>
+        </div>
+        <div class="field">
+          <label for="selLang">Idioma de la letra</label>
+          <select id="selLang">
+            <option value="es-419">Español latinoamericano</option>
+            <option value="es">Español de España</option>
+            <option value="la">Latín</option>
+            <option value="it">Italiano</option>
+            <option value="en-us">Inglés (EE. UU.)</option>
+            <option value="en">Inglés (Reino Unido)</option>
+            <option value="pt-br">Portugués de Brasil</option>
+            <option value="pt">Portugués de Portugal</option>
+            <option value="fr">Francés</option>
+            <option value="de">Alemán</option>
+            <option value="ca">Catalán</option>
+            <option value="eu">Euskera</option>
+            <option value="qu">Quechua</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="numGoto">Ir al compás</label>
+          <div class="inline">
+            <input type="number" id="numGoto" min="1" value="1" aria-keyshortcuts="Alt+Shift+G">
+            <button id="btnGoto">Ir</button>
+          </div>
+        </div>
+        <fieldset class="field" style="border:0;padding:0;margin:0">
+          <legend style="font-weight:600;padding:0">Sección para repetir (compases)</legend>
+          <div class="inline">
+            <label for="numLoopA">Desde</label><input type="number" id="numLoopA" min="1" value="1">
+            <label for="numLoopB">hasta</label><input type="number" id="numLoopB" min="1" value="4">
+          </div>
+          <p class="hint">Se activa con la casilla “Repetir sección”.</p>
+        </fieldset>
+      </div>
+    </section>
+  </div>
+</main>
+
+<dialog id="dlgGuide" aria-labelledby="hGuide">
+  <h2 id="hGuide">Cómo funciona Corale</h2>
+  <div class="guide-wrap guide" tabindex="0">
+    <p>Corale convierte una partitura coral en voces cantadas. Cada voz canta su melodía con la letra escrita en la partitura, usando una voz sintética. Sirve para estudiar la parte propia, escuchar las demás y ensayar con metrónomo, a la velocidad que haga falta.</p>
+
+    <h3>1. Abrir una partitura</h3>
+    <p>En <b>Archivo › Abrir partitura</b> (Alt+Mayús+O) elija un archivo. Formatos admitidos:</p>
+    <ul>
+      <li><b>MusicXML</b> (.musicxml o .xml) y <b>MusicXML comprimido</b> (.mxl), tal como los exportan MuseScore, Finale, Sibelius o Dorico.</li>
+      <li><b>Braille musical</b> (.brf, o .brl/.txt en braille Unicode). Es experimental: se admiten obras para una voz o para coro (soprano, contralto, tenor, bajo…), con su letra en braille sin abreviar y con acompañamiento de piano. Más abajo se explica el formato.</li>
+    </ul>
+    <p>También puede arrastrar el archivo sobre la ventana, o probar con los ejemplos del menú Archivo.</p>
+
+    <h3>2. Generación de las voces</h3>
+    <p>Al abrir la partitura, Corale genera una pista cantada para cada voz (por ejemplo, Soprano, Contralto, Tenor y Bajo). Si un pentagrama tiene dos voces, se separan en dos pistas. La barra de estado muestra el avance y el lector de pantalla anuncia cuando está listo. Si cambia la velocidad, el transporte, el idioma o el timbre de una voz, las voces se vuelven a generar.</p>
+    <p>Las repeticiones, las casillas de 1.ª y 2.ª vez y las estrofas se respetan: en la segunda vuelta se canta la segunda estrofa. Las notas sin sílaba que siguen a una sílaba se cantan como melisma.</p>
+
+    <h3>3. Reproducir y moverse</h3>
+    <p>Use los botones de la barra de reproducción o el menú <b>Reproducción</b>. Puede ir al compás anterior o siguiente, saltar a un compás concreto, activar el metrónomo, añadir un compás de entrada antes de empezar y repetir una sección (indique “desde” y “hasta” en Ajustes). Alt+Mayús+A dice en voz alta el compás, el pulso y la palabra que suena.</p>
+
+    <h3>4. Mezclador</h3>
+    <p>Cada voz tiene su volumen de canto, un piano guía que toca la misma melodía (las partes instrumentales, como el piano, tienen sólo su volumen), el panorama (izquierda o derecha), y botones Silenciar y Solo. En <b>Mi voz</b> elija su cuerda y en <b>Modo de práctica</b> decida cómo escucharla: todas iguales, mi voz destacada, solo mi voz, o todas menos la mía para cantarla usted.</p>
+
+    <h3>5. Letra y partitura en pantalla</h3>
+    <p>La letra de la voz elegida se muestra en grande y la sílaba que suena se resalta. En el menú <b>Ver</b> puede agrandar la letra, elegir fondo claro u oscuro, activar el alto contraste, cambiar el zoom de la partitura y mostrar u ocultar paneles. La partitura marca las notas que suenan y cambia de página sola si “Seguir la reproducción” está activo.</p>
+
+    <h3>6. Exportar</h3>
+    <p>En <b>Archivo</b> puede exportar la mezcla actual como audio <b>WAV</b> o <b>MP3</b>, la partitura como <b>MIDI</b> (una pista por voz, con la letra) y como <b>MusicXML</b>, que es útil para pasar a MuseScore una partitura importada desde braille. Dentro de la página publicada en Claude cada archivo se guarda dentro de un .zip.</p>
+
+    <h3>7. Braille musical (BRF)</h3>
+    <p>Corale lee música braille según la signografía musical internacional: notas y valores, signos de octava, alteraciones, armadura, compás (por ejemplo #D4 es 4/4, y también el signo de compasillo), puntillos, ligaduras de prolongación, ligaduras de expresión (se usan como melismas), tresillos, matices, repeticiones y doble barra final. Cada espacio separa compases.</p>
+    <p>Se admite el formato vocal habitual: un número de compás, luego la letra en braille sin abreviar (una o varias líneas) y después la línea de música, que puede empezar con un prefijo como &gt;S'.</p>
+    <p>También se admite el formato coral línea por línea: en cada bloque, una línea de música por parte con su prefijo (&gt;S', &gt;A' o &gt;CO', &gt;T', &gt;B', &gt;CB'; &gt;SA' cuando soprano y contralto cantan al unísono; dos &gt;T' seguidos para tenor 1 y tenor 2), y la letra antes, sin prefijo si es común a todas las partes, o con las partes a las que corresponde (,S' o ,T',B'). Cada parte se convierte en una voz del mezclador, con su nombre. Los rellenos de alineación ('''') se ignoran. Los encabezados centrados se usan para el título, el tempo (Andante, Allegro…), la armadura y el compás.</p>
+    <p>La letra se reparte sola entre las notas de cada línea: si las sílabas van separadas con guiones se respetan; si no, Corale divide las palabras (en español o en inglés) para que coincidan con el número de notas. El idioma de la letra se detecta y se elige automáticamente.</p>
+    <p>El acompañamiento de piano en formato compás sobre compás también se importa: mano derecha (.&gt;) y mano izquierda (_&gt;), acordes escritos con intervalos (incluida la duplicación de intervalos), voces simultáneas en una mano (acorde de compás completo y de parte de compás), ligaduras de acorde y el signo de repetición. El piano aparece en el mezclador como una sola pista de acompañamiento, con sus acordes completos, y en la partitura como gran pentagrama.</p>
+    <p>Se reconocen también los grupos irregulares (tresillos, seisillos), los calderones, las articulaciones (que no cambian el canto) y los cambios de compás, incluso si sólo están escritos en el piano. Aún no se admiten el braille abreviado (estenografía) en la letra ni los adornos; las notas de adorno se omiten. Si algo no coincide, los avisos aparecen bajo la barra de estado, y con Archivo › Exportar MusicXML puede revisar el resultado en MuseScore.</p>
+
+    <h3>8. Accesibilidad</h3>
+    <p>Todo funciona con teclado y lector de pantalla. Ctrl+Mayús+F (o F10) lleva a la barra de menús: muévase con las flechas, abra con Intro y cierre con Escape. Ctrl+Mayús+Espacio reproduce o pausa, Ctrl+Mayús+1 a 9 pone en solo cada voz, Ctrl+Mayús+0 quita los solos, Ctrl+Mayús+L repite la sección y Ctrl+Mayús+X lleva al mezclador.</p>
+    <p>Dentro de la barra de reproducción (Alt+Mayús+R lleva a ella) también funcionan teclas sueltas: <b>P</b> pausa la reproducción y, al pulsarla otra vez, continúa desde donde quedó; <b>S</b> detiene y vuelve al inicio; <b>flechas izquierda y derecha</b> cambian de compás; <b>A</b> dice la posición; <b>M</b> activa el metrónomo y <b>L</b> repite la sección. La barra se anuncia como aplicación para que el lector de pantalla deje pasar esas teclas.</p>
+    <p>Las demás funciones usan Alt+Mayús y la letra, porque con Ctrl+Mayús chocarían con atajos del navegador (por ejemplo, Ctrl+Mayús+T reabre una pestaña y Ctrl+Mayús+P abre una ventana privada en Firefox). Todos los atajos con Alt+Mayús siguen funcionando. En <b>Ayuda › Atajos de teclado</b> está la lista completa. En Mac, Alt es la tecla Opción.</p>
+
+    <h3>Limitaciones</h3>
+    <p>La voz es sintética (eSpeak NG): la afinación y el ritmo son exactos, pero el timbre suena robótico. No interpreta D.C., D.S. ni Coda. La importación de braille es experimental: si algo no coincide, Corale muestra advertencias bajo la barra de estado.</p>
+  </div>
+  <p style="margin-top:1rem"><button class="primary" data-close>Cerrar</button></p>
+</dialog>
+
+<dialog id="dlgKeys" aria-labelledby="hKeys">
+  <h2 id="hKeys" style="margin-bottom:.6rem">Atajos de teclado</h2>
+  <p class="hint">Funcionan en toda la página, también con el lector de pantalla activo. En Mac, Alt es la tecla Opción.</p>
+  <div class="keys-wrap" tabindex="0">
+    <table class="keys">
+      <thead><tr><th scope="col">Teclas</th><th scope="col">Acción</th></tr></thead>
+      <tbody id="keysBody"></tbody>
+    </table>
+  </div>
+  <p style="margin-top:1rem"><button class="primary" data-close>Cerrar</button></p>
+</dialog>
+
+<dialog id="dlgDiag" aria-labelledby="hDiag">
+  <h2 id="hDiag">Estado del sistema</h2>
+  <p class="hint">Si algo no funciona, esta información ayuda a encontrar la causa.</p>
+  <dl class="diag" id="diagList"></dl>
+  <p style="margin-top:1rem"><button class="primary" data-close>Cerrar</button></p>
+</dialog>
+
+<dialog id="dlgAbout" aria-labelledby="hAbout">
+  <h2 id="hAbout">Acerca de Corale</h2>
+  <div class="guide">
+    <p>Corale es una herramienta de ensayo coral: convierte partituras en voces cantadas con su letra.</p>
+    <p>Usa componentes de código abierto: <b>eSpeak NG</b> (síntesis de voz, GPL-3.0, compilado a WebAssembly por el proyecto Echogarden), <b>Verovio</b> (dibujo de la partitura, LGPL-3.0) y <b>lamejs</b> (codificación MP3, LGPL-3.0).</p>
+    <p>Corale no edita partituras. Para crearlas o corregirlas, use MuseScore o un editor de braille musical.</p>
+  </div>
+  <p style="margin-top:1rem"><button class="primary" data-close>Cerrar</button></p>
+</dialog>
