@@ -152,7 +152,7 @@ async function loadXml(xml, name, source = 'MusicXML', warnings = []) {
       voice: t.hasLyrics ? 80 : 0, guide: t.instrumental ? 55 : t.hasLyrics ? 20 : 60,
       pan: score.tracks.length > 1 ? Math.round(-60 + 120 * i / (score.tracks.length - 1)) : 0,
       mute: false, solo: false,
-      variant: t.medianMidi >= 59 ? (i % 2 ? 'f2' : 'f3') : (i % 2 ? 'm1' : 'm3'),
+      variant: defaultVariant(t, i, score.tracks),
     },
     buf: null, sylList: [], words: [],
   }));
@@ -212,6 +212,28 @@ document.addEventListener('drop', (e) => {
 });
 
 // ------------------------------------------------------------------ mezclador
+// Timbre por defecto: soprano, mezzo y contralto con voz femenina; tenor, barítono y bajo con voz masculina.
+// Se decide por el nombre de la parte; si el nombre no lo dice, por la altura media de la voz.
+function voiceRole(t) {
+  const n = (t.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/contrabaj|basso?\b|bajo|bass|\bb\b|^b\s*\d/.test(n)) return 'bass';
+  if (/bariton/.test(n)) return 'baritone';
+  if (/tenor|\bt\b|^t\s*\d/.test(n)) return 'tenor';
+  if (/contralt|\balto|mezzo|\bms?\b|^a\s*\d|\ba\b|\bco\b/.test(n)) return 'alto';
+  if (/sopran|tiple|\bs\b|^s\s*\d/.test(n)) return 'soprano';
+  return null;
+}
+const ROLE_VARIANTS = { soprano: ['f3', 'f1'], alto: ['f2', 'f4'], tenor: ['m3', 'm2'], baritone: ['m1', 'm4'], bass: ['m1', 'base'] };
+function defaultVariant(t, i, all = []) {
+  const role = voiceRole(t);
+  if (role) {
+    // dos partes de la misma cuerda (tenor 1 y tenor 2) reciben timbres distintos
+    const k = all.slice(0, i).filter(x => !x.instrumental && voiceRole(x) === role).length;
+    const vs = ROLE_VARIANTS[role]; return vs[k % vs.length];
+  }
+  // sin nombre reconocible: por la altura (las voces de tenor suelen quedar entre Sol 3 y Sol 4)
+  return t.medianMidi >= 64 ? (i % 2 ? 'f2' : 'f3') : (i % 2 ? 'm1' : 'm3');
+}
 const VARIANTS = [
   ['f1', 'Femenina 1'], ['f2', 'Femenina 2'], ['f3', 'Femenina 3'], ['f4', 'Femenina 4'], ['f5', 'Femenina 5'],
   ['base', 'Masculina 1'], ['m1', 'Masculina 2'], ['m2', 'Masculina 3'], ['m3', 'Masculina 4'], ['m4', 'Masculina 5'],

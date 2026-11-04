@@ -397,7 +397,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .55); }
     <p>Use los botones de la barra de reproducción o el menú <b>Reproducción</b>. Puede ir al compás anterior o siguiente, saltar a un compás concreto, activar el metrónomo, añadir un compás de entrada antes de empezar y repetir una sección (indique “desde” y “hasta” en Ajustes). Alt+Mayús+A dice en voz alta el compás, el pulso y la palabra que suena.</p>
 
     <h3>4. Mezclador</h3>
-    <p>Cada voz tiene su volumen de canto, un piano guía que toca la misma melodía (las partes instrumentales, como el piano, tienen sólo su volumen), el panorama (izquierda o derecha), y botones Silenciar y Solo. En <b>Mi voz</b> elija su cuerda y en <b>Modo de práctica</b> decida cómo escucharla: todas iguales, mi voz destacada, solo mi voz, o todas menos la mía para cantarla usted.</p>
+    <p>Cada voz tiene su volumen de canto, un piano guía que toca la misma melodía (las partes instrumentales, como el piano, tienen sólo su volumen), el panorama (izquierda o derecha), el timbre y botones Silenciar y Solo. Por defecto, soprano, mezzo y contralto cantan con voz femenina, y tenor, barítono y bajo con voz masculina; si hay dos partes de la misma cuerda (tenor 1 y tenor 2), reciben timbres distintos. El timbre de cada voz se puede cambiar en su selector. En <b>Mi voz</b> elija su cuerda y en <b>Modo de práctica</b> decida cómo escucharla: todas iguales, mi voz destacada, solo mi voz, o todas menos la mía para cantarla usted.</p>
 
     <h3>5. Letra y partitura en pantalla</h3>
     <p>La letra de la voz elegida se muestra en grande y la sílaba que suena se resalta. En el menú <b>Ver</b> puede agrandar la letra, elegir fondo claro u oscuro, activar el alto contraste, cambiar el zoom de la partitura y mostrar u ocultar paneles. La partitura marca las notas que suenan y cambia de página sola si “Seguir la reproducción” está activo.</p>
@@ -2038,7 +2038,7 @@ async function loadXml(xml, name, source = 'MusicXML', warnings = []) {
       voice: t.hasLyrics ? 80 : 0, guide: t.instrumental ? 55 : t.hasLyrics ? 20 : 60,
       pan: score.tracks.length > 1 ? Math.round(-60 + 120 * i / (score.tracks.length - 1)) : 0,
       mute: false, solo: false,
-      variant: t.medianMidi >= 59 ? (i % 2 ? 'f2' : 'f3') : (i % 2 ? 'm1' : 'm3'),
+      variant: defaultVariant(t, i, score.tracks),
     },
     buf: null, sylList: [], words: [],
   }));
@@ -2098,6 +2098,28 @@ document.addEventListener('drop', (e) => {
 });
 
 // ------------------------------------------------------------------ mezclador
+// Timbre por defecto: soprano, mezzo y contralto con voz femenina; tenor, barítono y bajo con voz masculina.
+// Se decide por el nombre de la parte; si el nombre no lo dice, por la altura media de la voz.
+function voiceRole(t) {
+  const n = (t.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/contrabaj|basso?\b|bajo|bass|\bb\b|^b\s*\d/.test(n)) return 'bass';
+  if (/bariton/.test(n)) return 'baritone';
+  if (/tenor|\bt\b|^t\s*\d/.test(n)) return 'tenor';
+  if (/contralt|\balto|mezzo|\bms?\b|^a\s*\d|\ba\b|\bco\b/.test(n)) return 'alto';
+  if (/sopran|tiple|\bs\b|^s\s*\d/.test(n)) return 'soprano';
+  return null;
+}
+const ROLE_VARIANTS = { soprano: ['f3', 'f1'], alto: ['f2', 'f4'], tenor: ['m3', 'm2'], baritone: ['m1', 'm4'], bass: ['m1', 'base'] };
+function defaultVariant(t, i, all = []) {
+  const role = voiceRole(t);
+  if (role) {
+    // dos partes de la misma cuerda (tenor 1 y tenor 2) reciben timbres distintos
+    const k = all.slice(0, i).filter(x => !x.instrumental && voiceRole(x) === role).length;
+    const vs = ROLE_VARIANTS[role]; return vs[k % vs.length];
+  }
+  // sin nombre reconocible: por la altura (las voces de tenor suelen quedar entre Sol 3 y Sol 4)
+  return t.medianMidi >= 64 ? (i % 2 ? 'f2' : 'f3') : (i % 2 ? 'm1' : 'm3');
+}
 const VARIANTS = [
   ['f1', 'Femenina 1'], ['f2', 'Femenina 2'], ['f3', 'Femenina 3'], ['f4', 'Femenina 4'], ['f5', 'Femenina 5'],
   ['base', 'Masculina 1'], ['m1', 'Masculina 2'], ['m2', 'Masculina 3'], ['m3', 'Masculina 4'], ['m4', 'Masculina 5'],
