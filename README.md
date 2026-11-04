@@ -2,7 +2,7 @@
 
 **Ensayo coral accesible con voz sintética.** Corale convierte una partitura coral en voces cantadas con su letra, para que cada estudiante escuche y practique su parte. Fue creada pensando en estudiantes con discapacidad visual o baja visión de la Universidad Nacional de Música (Lima, Perú), y sirve a cualquier corista que quiera estudiar su voz fuera del ensayo.
 
-**Usar en línea:** @@PAGES_URL@@
+**Usar en línea:** abra la dirección de GitHub Pages de este repositorio (aparece en Settings › Pages), o descargue la carpeta y abra `index.html`.
 
 ## Qué hace
 
