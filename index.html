@@ -391,7 +391,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .55); }
 
     <h3>2. Generación de las voces</h3>
     <p>Al abrir la partitura, Corale genera una pista cantada para cada voz (por ejemplo, Soprano, Contralto, Tenor y Bajo). Si un pentagrama tiene dos voces, se separan en dos pistas. La barra de estado muestra el avance y el lector de pantalla anuncia cuando está listo. Si cambia la velocidad, el transporte, el idioma o el timbre de una voz, las voces se vuelven a generar.</p>
-    <p>Las repeticiones, las casillas de 1.ª y 2.ª vez y las estrofas se respetan: en la segunda vuelta se canta la segunda estrofa. Las notas sin sílaba que siguen a una sílaba se cantan como melisma.</p>
+    <p>Las repeticiones, las casillas de 1.ª y 2.ª vez y las estrofas se respetan: en la segunda vuelta se canta la segunda estrofa. Las notas sin sílaba que siguen a una sílaba se cantan como melisma. En español, italiano, latín y otras lenguas romances, cuando una palabra termina con la misma vocal con que empieza la siguiente, Corale las une como lo haría un coro: «donde estás» se canta «donde stás». La letra en pantalla no cambia.</p>
 
     <h3>3. Reproducir y moverse</h3>
     <p>Use los botones de la barra de reproducción o el menú <b>Reproducción</b>. Puede ir al compás anterior o siguiente, saltar a un compás concreto, activar el metrónomo, añadir un compás de entrada antes de empezar y repetir una sección (indique “desde” y “hasta” en Ajustes). Alt+Mayús+A dice en voz alta el compás, el pulso y la palabra que suena.</p>
@@ -769,7 +769,7 @@ function secToQ(score, s) {
 }
 
 // Palabras para el motor de canto
-function buildWords(score, track, speed, transpose) {
+function buildWords(score, track, speed, transpose, lang = '') {
   const toSec = q => qToSec(score, q) / speed;
   const hz = m => 440 * Math.pow(2, (m + transpose - 69) / 12);
   if (track.instrumental) {
@@ -786,7 +786,7 @@ function buildWords(score, track, speed, transpose) {
       const syl = { text: n.lyric.text, segs: [seg] };
       const sb = n.lyric.syllabic;
       if ((sb === 'middle' || sb === 'end') && cur) cur.syls.push(syl);
-      else { cur = { syls: [syl] }; words.push(cur); }
+      else { cur = { syls: [syl], lyric: true }; words.push(cur); }
       if (sb === 'single' || sb === 'end') cur = null;
       lastSyl = syl;
       sylList.push({ text: n.lyric.text, syllabic: sb, start: seg.start, end: seg.end, origQ: n.origQ, seqIndex: n.seqIndex, word: words.length - 1 });
@@ -798,9 +798,32 @@ function buildWords(score, track, speed, transpose) {
       words.push({ syls: [{ text: 'u', segs: [seg] }] });
     }
   }
+  if (/^(es|it|la|pt|ca|gl|qu|eu)/.test(lang)) applySinalefa(words);
   const guide = track.notes.map(n => ({ start: toSec(n.q), end: toSec(n.q + n.d), hz: hz(n.midi) }));
   return { words, guide, sylList };
 }
+
+// Sinalefa al cantar: si una palabra termina en vocal y la siguiente empieza con la misma vocal,
+// sin silencio entre ambas, la vocal repetida se omite en el canto («donde estás» se canta «donde stás»).
+// Sólo cambia lo que se canta; la letra en pantalla no se modifica.
+function applySinalefa(words) {
+  const base = (c) => ({ á: 'a', é: 'e', í: 'i', ó: 'o', ú: 'u', à: 'a', è: 'e', ì: 'i', ò: 'o', ù: 'u', ü: 'u' }[c] || c);
+  const V = /[aeiouáéíóúàèìòùü]/i;
+  for (let i = 1; i < words.length; i++) {
+    const p = words[i - 1], w = words[i];
+    if (!p.lyric || !w.lyric) continue;
+    const last = p.syls[p.syls.length - 1], first = w.syls[0];
+    const pe = last.segs[last.segs.length - 1].end, ws = first.segs[0].start;
+    if (ws - pe > 0.06) continue;                     // hay silencio o respiración entre las palabras
+    const a = (last.text.toLowerCase().match(/(\p{L})[^\p{L}]*$/u) || [])[1];
+    const m = first.text.match(/^([^\p{L}]*)(\p{L})(.*)$/u);
+    if (!a || !m || !V.test(a) || !V.test(m[2])) continue;
+    if (base(a) !== base(m[2].toLowerCase())) continue;
+    if (!V.test(m[3])) continue;                      // la sílaba quedaría sin vocal: se canta completa
+    first.text = m[1] + m[3];
+  }
+}
+
 
 // ===================================================================== BRF
 // Musicografía braille (BRF en ASCII braille norteamericano, o braille Unicode)
@@ -1977,7 +2000,7 @@ function startRender() {
   st.totalSec = qToSec(st.score, st.score.totalQ) / st.speed;
   const payload = [];
   for (const tr of st.tracks) {
-    const b = buildWords(st.score, tr, st.speed, st.transpose);
+    const b = buildWords(st.score, tr, st.speed, st.transpose, st.lang);
     tr.sylList = b.sylList; tr.words = b.words; tr.buf = null;
     payload.push({ id: tr.id, lang: st.lang, variant: tr.mix.variant, words: b.words, notes: b.guide });
   }

@@ -312,7 +312,7 @@ export function secToQ(score, s) {
 }
 
 // Palabras para el motor de canto
-export function buildWords(score, track, speed, transpose) {
+export function buildWords(score, track, speed, transpose, lang = '') {
   const toSec = q => qToSec(score, q) / speed;
   const hz = m => 440 * Math.pow(2, (m + transpose - 69) / 12);
   if (track.instrumental) {
@@ -329,7 +329,7 @@ export function buildWords(score, track, speed, transpose) {
       const syl = { text: n.lyric.text, segs: [seg] };
       const sb = n.lyric.syllabic;
       if ((sb === 'middle' || sb === 'end') && cur) cur.syls.push(syl);
-      else { cur = { syls: [syl] }; words.push(cur); }
+      else { cur = { syls: [syl], lyric: true }; words.push(cur); }
       if (sb === 'single' || sb === 'end') cur = null;
       lastSyl = syl;
       sylList.push({ text: n.lyric.text, syllabic: sb, start: seg.start, end: seg.end, origQ: n.origQ, seqIndex: n.seqIndex, word: words.length - 1 });
@@ -341,6 +341,29 @@ export function buildWords(score, track, speed, transpose) {
       words.push({ syls: [{ text: 'u', segs: [seg] }] });
     }
   }
+  if (/^(es|it|la|pt|ca|gl|qu|eu)/.test(lang)) applySinalefa(words);
   const guide = track.notes.map(n => ({ start: toSec(n.q), end: toSec(n.q + n.d), hz: hz(n.midi) }));
   return { words, guide, sylList };
 }
+
+// Sinalefa al cantar: si una palabra termina en vocal y la siguiente empieza con la misma vocal,
+// sin silencio entre ambas, la vocal repetida se omite en el canto («donde estás» se canta «donde stás»).
+// Sólo cambia lo que se canta; la letra en pantalla no se modifica.
+function applySinalefa(words) {
+  const base = (c) => ({ á: 'a', é: 'e', í: 'i', ó: 'o', ú: 'u', à: 'a', è: 'e', ì: 'i', ò: 'o', ù: 'u', ü: 'u' }[c] || c);
+  const V = /[aeiouáéíóúàèìòùü]/i;
+  for (let i = 1; i < words.length; i++) {
+    const p = words[i - 1], w = words[i];
+    if (!p.lyric || !w.lyric) continue;
+    const last = p.syls[p.syls.length - 1], first = w.syls[0];
+    const pe = last.segs[last.segs.length - 1].end, ws = first.segs[0].start;
+    if (ws - pe > 0.06) continue;                     // hay silencio o respiración entre las palabras
+    const a = (last.text.toLowerCase().match(/(\p{L})[^\p{L}]*$/u) || [])[1];
+    const m = first.text.match(/^([^\p{L}]*)(\p{L})(.*)$/u);
+    if (!a || !m || !V.test(a) || !V.test(m[2])) continue;
+    if (base(a) !== base(m[2].toLowerCase())) continue;
+    if (!V.test(m[3])) continue;                      // la sílaba quedaría sin vocal: se canta completa
+    first.text = m[1] + m[3];
+  }
+}
+

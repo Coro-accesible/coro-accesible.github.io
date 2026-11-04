@@ -114,7 +114,7 @@ function startRender() {
   st.totalSec = qToSec(st.score, st.score.totalQ) / st.speed;
   const payload = [];
   for (const tr of st.tracks) {
-    const b = buildWords(st.score, tr, st.speed, st.transpose);
+    const b = buildWords(st.score, tr, st.speed, st.transpose, st.lang);
     tr.sylList = b.sylList; tr.words = b.words; tr.buf = null;
     payload.push({ id: tr.id, lang: st.lang, variant: tr.mix.variant, words: b.words, notes: b.guide });
   }
