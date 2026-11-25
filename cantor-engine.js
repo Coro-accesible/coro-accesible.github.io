@@ -84,6 +84,8 @@ function clean(p) { return p.replace(/[ˈˌːˑ‿ʰ̯̃͡˞]/g, ''); }
 function isVowel(p) { const c = clean(p); return c.length > 0 && (VOW.test(c[0]) || /̩/.test(p)); }
 const OBS = new Set(['p', 'b', 't', 'd', 'k', 'g', 'f', 'β', 'ð', 'ɣ', 'v']);
 const LIQ = new Set(['ɾ', 'r', 'l', 'ɹ', 'ʁ', 'ɫ']);
+const GLIDE = new Set(['j', 'w', 'ʲ', 'ʷ', 'ɥ', 'i̯', 'u̯']);
+function isGlide(p) { return GLIDE.has(p.replace(/[ˈˌːˑ]/g, '')) || /̯/.test(p); }
 function isCluster(a, b) { return OBS.has(clean(a)) && LIQ.has(clean(b)); }
 
 // Reparte los fonemas de una palabra entre n sílabas. Devuelve [{a, v, b}] (índices
@@ -105,10 +107,14 @@ function splitSyllables(ph, n) {
   const starts = [0];
   for (let k = 1; k < groups.length; k++) {
     const c0 = groups[k - 1][1] + 1, c1 = groups[k][0];
-    const c = c1 - c0;
-    let onset = 0;
-    if (c === 1) onset = 1;
-    else if (c >= 2) onset = isCluster(ph[c1 - 2].p, ph[c1 - 1].p) ? 2 : 1;
+    // Las semivocales (la «i» de «ria», la «u» de «bue») van con la consonante que las
+    // precede: «glo-ria», no «glor-ia». Si la «r» quedaba al final de la sílaba anterior,
+    // se oía dos veces en la unión y sonaba como la «rr» de «carro».
+    let e = c1, onset = 0;
+    while (e - 1 >= c0 && isGlide(ph[e - 1].p)) { e--; onset++; }
+    const c = e - c0;
+    if (c === 1) onset += 1;
+    else if (c >= 2) onset += isCluster(ph[e - 2].p, ph[e - 1].p) ? 2 : 1;
     starts.push(c1 - onset);
   }
   return groups.map((g, k) => ({ a: starts[k], v: g[1], b: k + 1 < groups.length ? starts[k + 1] : ph.length }));
