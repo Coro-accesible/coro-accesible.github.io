@@ -298,7 +298,7 @@ function prepareWord(word, lang, variant) {
       const s0 = k === 0 ? Math.max(0, Math.min(ph[pt.a].s, Math.max(tr.a, ph[pt.a].s - Math.round(ESR * 0.01)))) : ph[pt.a].s;
       const s1 = pt.b < ph.length ? ph[pt.b].s : end;
       const v0 = ph[pt.v].s, v1 = pt.v + 1 < ph.length ? ph[pt.v + 1].s : end;
-      const syl = makeSyl(x.subarray(s0, Math.max(s0 + 1, s1)), v0 - s0, v1 - s0, word.syls[k], synthHz);
+      const syl = makeSyl(x.subarray(s0, Math.max(s0 + 1, s1)), v0 - s0, v1 - s0, word.syls[k], synthHz, nasalRanges(ph, s0, end));
       syl.vowOn = hasVowel(ph, pt.a, pt.v); syl.vowCo = hasVowel(ph, pt.v + 1, pt.b);
       res.push(syl);
     });
@@ -315,7 +315,7 @@ function prepareWord(word, lang, variant) {
       if (vi >= 0) { v0 = p[vi].s; v1 = vi + 1 < p.length ? p[vi + 1].s : tr.b; }
       else { v0 = tr.a + Math.round((tr.b - tr.a) * 0.25); v1 = tr.a + Math.round((tr.b - tr.a) * 0.8); }
       v0 = Math.max(tr.a, Math.min(v0, tr.b - 2)); v1 = Math.max(v0 + 1, Math.min(v1, tr.b));
-      const syl = makeSyl(r.x.subarray(tr.a, tr.b), v0 - tr.a, v1 - tr.a, s, sh);
+      const syl = makeSyl(r.x.subarray(tr.a, tr.b), v0 - tr.a, v1 - tr.a, s, sh, nasalRanges(r.ph, tr.a, tr.b));
       syl.vowOn = vi > 0 && hasVowel(p, 0, vi);
       res.push(syl);
     }
@@ -325,7 +325,15 @@ function prepareWord(word, lang, variant) {
 
 function hasVowel(ph, a, b) { for (let i = a; i < b; i++) if (ph[i] && isVowel(ph[i].p)) return true; return false; }
 
-function makeSyl(x, v0, v1, s, synthHz) {
+// tramos de consonantes nasales (m, n, ñ), en muestras relativas a «off»
+const NASAL = new Set(['m', 'n', 'ɲ', 'ŋ', 'ɱ']);
+function nasalRanges(ph, off, end) {
+  const out = [];
+  for (let i = 0; i < ph.length; i++) if (NASAL.has(clean(ph[i].p))) out.push([ph[i].s - off, (i + 1 < ph.length ? ph[i + 1].s : end) - off]);
+  return out;
+}
+
+function makeSyl(x, v0, v1, s, synthHz, nasals = []) {
   x = Float32Array.from(x);
   v0 = Math.max(0, Math.min(v0, x.length - 2)); v1 = Math.max(v0 + 2, Math.min(v1, x.length));
   let pk = 1e-6; for (let i = v0; i < v1; i++) pk = Math.max(pk, Math.abs(x[i]));
@@ -337,24 +345,30 @@ function makeSyl(x, v0, v1, s, synthHz) {
     let e = v1; while (e - v0 > 4 * F && rms(e - F) < 0.12 * pk) e -= F;
     v1 = e;
   }
+  // Consonantes nasales (m, n, ñ): eSpeak las da unos 20 dB más suaves que la vocal y,
+  // entre dos sílabas, se oían como un hueco. Se refuerzan hasta 6 dB con transiciones
+  // suaves. La «l», la «r» y las demás consonantes quedan como las da eSpeak: reforzadas
+  // sonaban forzadas (la «gl» de «gloria»).
+  {
+    const F = Math.round(ESR * 0.005), nF = Math.ceil(x.length / F), g = new Float32Array(nF).fill(1);
+    for (const [a, b] of nasals) {
+      for (let f = Math.max(0, Math.floor(a / F)); f < Math.min(nF, Math.ceil(b / F)); f++) {
+        const i0 = f * F; if (i0 >= v0 && i0 < v1) continue;
+        let e = 0; for (let i = i0; i < Math.min(x.length, i0 + F); i++) e = Math.max(e, Math.abs(x[i]));
+        if (e > 0) g[f] = Math.min(2, Math.max(1, 0.4 * pk / e));
+      }
+    }
+    for (let f = 1; f < nF; f++) g[f] = Math.min(g[f], g[f - 1] + 0.2);
+    for (let f = nF - 2; f >= 0; f--) g[f] = Math.min(g[f], g[f + 1] + 0.2);
+    for (let i = 0; i < x.length; i++) {
+      const ff = i / F, f0 = Math.min(nF - 1, Math.floor(ff)), f1 = Math.min(nF - 1, f0 + 1), u = ff - Math.floor(ff);
+      x[i] *= g[f0] * (1 - u) + g[f1] * u;
+    }
+  }
   // Silencios dentro de las consonantes (el cierre de «t», «p», «k»): en el canto ligado
   // duran muy poco. Cada tramo silencioso de más de 15 ms se acorta a 15 ms.
   ({ x, v0, v1 } = shortenGaps(x, v0, v1, pk));
   const an = analyse(x, synthHz);
-  // Consonantes sonoras (m, n, l, r): eSpeak las da muy suaves frente a la vocal y se
-  // oían como un hueco; se refuerzan hasta 8 dB, con transiciones suaves.
-  const F = an.hop, nF = an.nF, g = new Float32Array(nF);
-  for (let f = 0; f < nF; f++) {
-    const a = f * F, inCons = a < v0 || a >= v1;
-    let e = 0; for (let i = a; i < Math.min(x.length, a + F); i++) e = Math.max(e, Math.abs(x[i]));
-    g[f] = inCons && an.voiced[f] && e > 0 ? Math.min(2.5, Math.max(1, 0.45 * pk / e)) : 1;
-  }
-  for (let f = 1; f < nF; f++) g[f] = Math.min(g[f], g[f - 1] + 0.25);
-  for (let f = nF - 2; f >= 0; f--) g[f] = Math.min(g[f], g[f + 1] + 0.25);
-  for (let i = 0; i < x.length; i++) {
-    const ff = i / F, f0 = Math.min(nF - 1, Math.floor(ff)), f1 = Math.min(nF - 1, f0 + 1), u = ff - Math.floor(ff);
-    x[i] *= g[f0] * (1 - u) + g[f1] * u;
-  }
   return { x, v0, v1, segs: s.segs, an, gain: 0.55 / pk };
 }
 
