@@ -59,6 +59,7 @@ En pruebas con 11 obras reales, las voces coincidieron entre 91 % y 100 % de las
 | `index.html` | La aplicación (interfaz y lectura de partituras) |
 | `cantor-engine.js` | Motor de canto: eSpeak NG compilado a WebAssembly y síntesis de las notas |
 | `cantor-voice-data.js` | Datos de idiomas de eSpeak NG |
+| `cantor-piano.js` | Grabaciones del piano Salamander (30 notas) |
 | `verovio-toolkit-wasm.js` | Verovio, para dibujar la partitura |
 | `lame.min.js` | lamejs, para exportar MP3 |
 | `cantor-examples.js` | Ejemplos incluidos en el menú Archivo |
@@ -76,4 +77,5 @@ Usa estos componentes de código abierto:
 - [eSpeak NG](https://github.com/espeak-ng/espeak-ng), síntesis de voz, GPL-3.0, compilado a WebAssembly por el proyecto [Echogarden](https://github.com/echogarden-project/espeak-ng-emscripten).
 - [Verovio](https://github.com/rism-digital/verovio), dibujo de partituras, LGPL-3.0.
 - [lamejs](https://github.com/zhuker/lamejs), codificación MP3, LGPL-3.0.
+- Salamander Grand Piano V2 (Yamaha C5), grabado por Alexander Holm, licencia [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); muestras tomadas de [Tone.js audio](https://github.com/Tonejs/audio).
 - Tipografía [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), del Braille Institute (SIL Open Font License).

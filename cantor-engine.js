@@ -180,6 +180,8 @@ function hzAt(segs, t) {
   return f;
 }
 
+const XFADE = 0.015; // s, fundido cruzado entre sílabas contiguas
+
 function renderSyllable(syl, out, endT) {
   const x = syl.x, A = syl.an;
   const sr = ESR;
@@ -238,9 +240,12 @@ function renderSyllable(syl, out, endT) {
     }
   }
   for (let i = 0; i < len; i++) y[i] = y[i] / Math.max(wsum[i], 0.05);
-  const fi = Math.min(len, Math.round(sr * 0.008)), fo = Math.min(len, Math.round(sr * 0.02));
-  for (let i = 0; i < fi; i++) y[i] *= i / fi;
-  for (let i = 0; i < fo; i++) y[len - 1 - i] *= i / fo;
+  // Bordes: tras un silencio, entrada breve (8 ms); entre sílabas seguidas, fundido cruzado
+  // de igual potencia con la sílaba vecina, para que no quede un hueco en la unión.
+  const fi = Math.min(len, Math.round(sr * (syl.xin ? XFADE : 0.008)));
+  const fo = Math.min(len, Math.round(sr * (syl.xout ? XFADE : 0.02)));
+  for (let i = 0; i < fi; i++) y[i] *= syl.xin ? Math.sin(Math.PI / 2 * i / fi) : i / fi;
+  for (let i = 0; i < fo; i++) y[len - 1 - i] *= syl.xout ? Math.sin(Math.PI / 2 * i / fo) : i / fo;
   const off = Math.round(t0 * sr);
   for (let i = 0; i < len && off + i < out.length; i++) out[off + i] += y[i] * syl.gain;
 }
@@ -271,9 +276,11 @@ function prepareWord(word, lang, variant) {
     parts = splitSyllables(ph, n);
   }
   if (parts) {
-    const end = trim(x).b;
+    const tr = trim(x), end = tr.b;
     parts.forEach((pt, k) => {
-      const s0 = k === 0 ? Math.max(0, ph[pt.a].s - Math.round(ESR * 0.01)) : ph[pt.a].s;
+      // la primera sílaba arranca 10 ms antes de su primer fonema, pero nunca en el
+      // silencio inicial de eSpeak: ese silencio dejaba un hueco antes de la palabra
+      const s0 = k === 0 ? Math.max(0, Math.min(ph[pt.a].s, Math.max(tr.a, ph[pt.a].s - Math.round(ESR * 0.01)))) : ph[pt.a].s;
       const s1 = pt.b < ph.length ? ph[pt.b].s : end;
       const v0 = ph[pt.v].s, v1 = pt.v + 1 < ph.length ? ph[pt.v + 1].s : end;
       res.push(makeSyl(x.subarray(s0, Math.max(s0 + 1, s1)), v0 - s0, v1 - s0, word.syls[k], synthHz));
@@ -305,7 +312,31 @@ function makeSyl(x, v0, v1, s, synthHz) {
 }
 
 // ---------------------------------------------------------------- guía instrumental
+// Piano Salamander: cada nota usa la grabación más cercana (una cada tercera menor),
+// afinada a su altura. Al terminar la nota se apaga como al soltar la tecla.
+let PIANO = null;
+function renderPiano(notes, len) {
+  const out = new Float32Array(len);
+  const rel = Math.round(ESR * 0.35), tau = ESR * 0.07;
+  for (const n of notes) {
+    const m = 69 + 12 * Math.log2(n.hz / 440);
+    let k = 0;
+    for (let j = 1; j < PIANO.notes.length; j++) if (Math.abs(PIANO.notes[j] - m) < Math.abs(PIANO.notes[k] - m)) k = j;
+    const x = PIANO.pcm[k], rate = Math.pow(2, (m - PIANO.notes[k]) / 12);
+    const s0 = Math.round(n.start * ESR), L = Math.max(Math.round((n.end - n.start) * ESR), Math.round(ESR * 0.04));
+    for (let i = 0; i < L + rel && s0 + i < len; i++) {
+      const p = i * rate, a = Math.floor(p);
+      if (a + 1 >= x.length) break;
+      let v = x[a] + (x[a + 1] - x[a]) * (p - a);
+      if (i >= L) v *= Math.exp(-(i - L) / tau) * (1 - (i - L) / rel);
+      out[s0 + i] += v * 1.2;
+    }
+  }
+  return out;
+}
+
 function renderGuide(notes, len) {
+  if (PIANO) return renderPiano(notes, len);
   const out = new Float32Array(len);
   for (const n of notes) {
     const f = n.hz, s0 = Math.round(n.start * ESR), L = Math.round((n.end - n.start) * ESR);
@@ -336,8 +367,12 @@ async function renderTrack(job, tr, total, progress) {
     const s = syls[i], nx = syls[i + 1];
     const end = s.segs[s.segs.length - 1].end;
     let endT;
-    if (nx && nx.segs[0].start - end < 0.01) endT = nx.segs[0].start - Math.min(nx.v0 / ESR, 0.085);
-    else endT = end - 0.03;
+    s.xout = !!(nx && nx.segs[0].start - end < 0.01);
+    if (s.xout) {
+      // termina dentro de la entrada de la sílaba siguiente, que empieza con fundido
+      endT = nx.segs[0].start - Math.min(nx.v0 / ESR, 0.085) + XFADE;
+      nx.xin = true;
+    } else endT = end - 0.03;
     endT = Math.max(endT, s.segs[0].start + 0.06);
     renderSyllable(s, voice, endT);
   }
@@ -369,6 +404,8 @@ globalThis.onmessage = async (ev) => {
       postMessage({ type: 'track', job, id: tr.id, sr: ESR, voice: r.voice, guide: r.guide }, [r.voice.buffer, r.guide.buffer]);
     }
     postMessage({ type: 'done', job });
+  } else if (msg.cmd === 'piano') {
+    PIANO = { notes: msg.notes, pcm: msg.pcm };
   } else if (msg.cmd === 'cancel') {
     latestJob = -1;
   }

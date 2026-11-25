@@ -9,6 +9,13 @@ eng = open(F + '/engine.js', encoding='utf-8').read()
 open(R + '/cantor-engine.js', 'w', encoding='utf-8').write('/* Corale: motor de canto (eSpeak NG, GPL-3.0) */\nself.CANTOR_ENGINE_SRC = function () {\n' + esp + '\nconst createEspeak = Module;\n' + eng + '\n};\n')
 data = open(F + '/datos/espeak-ng-data.wasm', 'rb').read()
 open(R + '/cantor-voice-data.js', 'w').write('self.CANTOR_VOICE_DATA="' + base64.b64encode(data).decode() + '";\n')
+# Piano Salamander (Alexander Holm, CC BY 3.0): 30 notas, una cada tercera menor desde La0
+NM = {0: 'C', 3: 'Ds', 6: 'Fs', 9: 'A'}
+pn = []
+for m in range(21, 109, 3):
+    f = F + '/datos/piano/%s%d.mp3' % (NM[m % 12], m // 12 - 1)
+    pn.append('[%d,"%s"]' % (m, base64.b64encode(open(f, 'rb').read()).decode()))
+open(R + '/cantor-piano.js', 'w').write('/* Salamander Grand Piano V2 (Yamaha C5), de Alexander Holm, CC BY 3.0 */\nself.CANTOR_PIANO=[' + ',\n'.join(pn) + '];\n')
 ex = {}
 for k, f in [('campanero', 'Campanero.musicxml'), ('canon', 'Campanero-canon-SATB.musicxml'), ('brf', 'Campanero.brf')]:
     ex[k] = open(R + '/ejemplos/' + f, encoding='utf-8').read()

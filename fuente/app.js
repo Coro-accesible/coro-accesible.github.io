@@ -71,16 +71,49 @@ async function startEngine() {
     for (let i = 0; i < bin.length; i++) bin[i] = raw.charCodeAt(i);
     diag.voiceData = `${(bin.length / 1e6).toFixed(1)} MB`;
     engine.postMessage({ cmd: 'init', data: bin.buffer }, [bin.buffer]);
+    pianoReady = loadPiano();
   } catch (e) {
     diag.engine = 'error: ' + e.message;
     reportError('No se pudo iniciar el motor de voz. ' + e.message);
   }
 }
+// Piano de cola grabado (Salamander Grand Piano, CC BY 3.0). Se decodifica aquí, a la
+// frecuencia de muestreo de Corale, y se entrega al motor, que toca con él el
+// acompañamiento y el piano guía. Si no carga, el motor usa su sonido sintetizado.
+let pianoReady = Promise.resolve();
+async function loadPiano() {
+  try {
+    diag.piano = 'cargando';
+    await loadScript('cantor-piano.js');
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const oc = new OAC(1, 1, SR);
+    const notes = [], pcm = [];
+    await Promise.all(self.CANTOR_PIANO.map(async ([midi, b64], i) => {
+      const raw = atob(b64), bin = new Uint8Array(raw.length);
+      for (let k = 0; k < raw.length; k++) bin[k] = raw.charCodeAt(k);
+      const ab = await new Promise((res, rej) => { const pr = oc.decodeAudioData(bin.buffer, res, rej); if (pr && pr.then) pr.then(res, rej); });
+      const ch = ab.numberOfChannels, mono = new Float32Array(ab.length);
+      for (let c = 0; c < ch; c++) { const d = ab.getChannelData(c); for (let k = 0; k < ab.length; k++) mono[k] += d[k] / ch; }
+      // se quita el silencio inicial de la grabación para que el piano suene a tiempo
+      let pk = 1e-9; for (let k = 0; k < mono.length; k++) pk = Math.max(pk, Math.abs(mono[k]));
+      let a = 0; while (a < mono.length && Math.abs(mono[a]) < 0.02 * pk) a++;
+      a = Math.max(0, a - Math.round(SR * 0.002));
+      notes[i] = midi; pcm[i] = mono.slice(a, Math.min(mono.length, a + Math.round(SR * 8)));
+    }));
+    self.CANTOR_PIANO = null;
+    engine.postMessage({ cmd: 'piano', notes, pcm }, pcm.map(x => x.buffer));
+    diag.piano = `piano de cola (${notes.length} muestras)`;
+  } catch (e) {
+    diag.piano = 'sintetizado (no se pudo cargar el piano: ' + (e && e.message || e) + ')';
+  }
+}
 function onEngineMessage(ev) {
   const m = ev.data;
   if (m.type === 'ready') {
-    engineReady = true; diag.engine = 'listo';
-    if (st.score) startRender(); else status('Listo. Abra una partitura desde el menú Archivo.');
+    pianoReady.then(() => {
+      engineReady = true; diag.engine = 'listo';
+      if (st.score) startRender(); else status('Listo. Abra una partitura desde el menú Archivo.');
+    });
   } else if (m.type === 'error') {
     diag.engine = 'error: ' + m.message;
     reportError('No se pudo iniciar el motor de voz: ' + m.message);
@@ -923,6 +956,7 @@ async function renderDiag() {
   const rows = [
     ['Motor de voz', diag.engine],
     ['Datos de voz', diag.voiceData || '—'],
+    ['Sonido del piano', diag.piano || '—'],
     ['Visor de partitura', diag.viewer],
     ['Guardado de archivos', diag.downloads || '—'],
     ['Audio del navegador', (window.AudioContext || window.webkitAudioContext) ? 'disponible' + (ctx ? ` (${ctx.state})` : '') : 'no disponible'],
