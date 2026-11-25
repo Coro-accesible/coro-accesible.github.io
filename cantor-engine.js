@@ -29,15 +29,28 @@ async function init(data) {
 
 function useVoice(lang, variant, hz) {
   hz = Math.round(Math.min(1100, Math.max(55, hz)));
-  const name = `${lang}_${variant}_${hz}`;
+  const name = `${lang}_${variant}_${hz}_v2`;
   if (!made.has(name)) {
     let base = '';
     if (variant && variant !== 'base') {
       try { base = new TextDecoder().decode(FS.readFile(`${DATA}/voices/!v/${variant}`)); } catch (e) { base = ''; }
     }
-    const keep = base.split('\n')
-      .filter(l => !/^\s*(name|language|pitch|echo|roughness|breath|breathw|gender|tone|flutter)\b/.test(l))
-      .join('\n');
+    let keep = base.split('\n')
+      .filter(l => !/^\s*(name|language|pitch|echo|roughness|breath|breathw|gender|tone|flutter)\b/.test(l));
+    // Voces femeninas más llenas: las variantes de eSpeak suben mucho los formantes (hasta
+    // un 30 %), lo que adelgaza el timbre. Se acercan a los valores de base y se refuerzan
+    // los dos formantes graves. La altura no cambia: la fija después el PSOLA nota por nota.
+    if (/^f\d/.test(variant)) {
+      keep = keep.map(l => {
+        const m = l.match(/^\s*formant\s+(\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)(.*)$/);
+        if (!m) return l;
+        const n = +m[1], f = +m[2], h = +m[3];
+        const f2 = n === 0 ? f : Math.round(100 + (f - 100) * 0.5);
+        const h2 = n <= 1 ? Math.round(h * 1.2) : h;
+        return `formant ${n} ${f2} ${h2} ${m[4]}${m[5]}`;
+      });
+    }
+    keep = keep.join('\n');
     let langDef = `language ${lang}`;
     const lf = LANG_FILES[lang];
     if (lf) {
@@ -181,17 +194,24 @@ function hzAt(segs, t) {
 }
 
 const XFADE = 0.015; // s, fundido cruzado entre sílabas contiguas
+const ONSET_MAX = 0.07, CODA_MAX = 0.16; // s, duración máxima de las consonantes de inicio y final
+// tiempo que el inicio de la sílaba se adelanta al comienzo de la nota. Si ese inicio
+// lleva una vocal (el «tri» de «tria», un diptongo) no se acorta, para no comerse la «r».
+function onsetOut(syl) { return syl.vowOn ? syl.v0 : Math.min(syl.v0, Math.round(ESR * ONSET_MAX)); }
+function preOf(syl) { return Math.min(onsetOut(syl) / ESR, 0.085); }
 
 function renderSyllable(syl, out, endT) {
   const x = syl.x, A = syl.an;
   const sr = ESR;
   const onIn = syl.v0, vIn = syl.v1 - syl.v0, coIn = x.length - syl.v1;
   const noteStart = syl.segs[0].start;
-  const pre = Math.min(onIn / sr, 0.085);
+  const pre = preOf(syl);
   let t0 = Math.max(0, noteStart - pre);
   let total = Math.round((endT - t0) * sr);
   if (total < sr * 0.05) total = Math.round(sr * 0.05);
-  let onOut = onIn, coOut = coIn;
+  // En el canto las consonantes son breves: eSpeak las alarga como en el habla
+  // (cierres de «t», «m» y «n» de hasta 100 ms), y eso se oía como un bache.
+  let onOut = onsetOut(syl), coOut = syl.vowCo ? coIn : Math.min(coIn, Math.round(sr * CODA_MAX));
   const minV = Math.round(sr * 0.04);
   if (onOut + coOut + minV > total) {
     const k = Math.max(0.2, (total - minV) / Math.max(1, onOut + coOut));
@@ -283,7 +303,9 @@ function prepareWord(word, lang, variant) {
       const s0 = k === 0 ? Math.max(0, Math.min(ph[pt.a].s, Math.max(tr.a, ph[pt.a].s - Math.round(ESR * 0.01)))) : ph[pt.a].s;
       const s1 = pt.b < ph.length ? ph[pt.b].s : end;
       const v0 = ph[pt.v].s, v1 = pt.v + 1 < ph.length ? ph[pt.v + 1].s : end;
-      res.push(makeSyl(x.subarray(s0, Math.max(s0 + 1, s1)), v0 - s0, v1 - s0, word.syls[k], synthHz));
+      const syl = makeSyl(x.subarray(s0, Math.max(s0 + 1, s1)), v0 - s0, v1 - s0, word.syls[k], synthHz);
+      syl.vowOn = hasVowel(ph, pt.a, pt.v); syl.vowCo = hasVowel(ph, pt.v + 1, pt.b);
+      res.push(syl);
     });
   } else {
     for (const s of word.syls) {
@@ -298,17 +320,71 @@ function prepareWord(word, lang, variant) {
       if (vi >= 0) { v0 = p[vi].s; v1 = vi + 1 < p.length ? p[vi + 1].s : tr.b; }
       else { v0 = tr.a + Math.round((tr.b - tr.a) * 0.25); v1 = tr.a + Math.round((tr.b - tr.a) * 0.8); }
       v0 = Math.max(tr.a, Math.min(v0, tr.b - 2)); v1 = Math.max(v0 + 1, Math.min(v1, tr.b));
-      res.push(makeSyl(r.x.subarray(tr.a, tr.b), v0 - tr.a, v1 - tr.a, s, sh));
+      const syl = makeSyl(r.x.subarray(tr.a, tr.b), v0 - tr.a, v1 - tr.a, s, sh);
+      syl.vowOn = vi > 0 && hasVowel(p, 0, vi);
+      res.push(syl);
     }
   }
   return res;
 }
 
+function hasVowel(ph, a, b) { for (let i = a; i < b; i++) if (ph[i] && isVowel(ph[i].p)) return true; return false; }
+
 function makeSyl(x, v0, v1, s, synthHz) {
   x = Float32Array.from(x);
   v0 = Math.max(0, Math.min(v0, x.length - 2)); v1 = Math.max(v0 + 2, Math.min(v1, x.length));
   let pk = 1e-6; for (let i = v0; i < v1; i++) pk = Math.max(pk, Math.abs(x[i]));
-  return { x, v0, v1, segs: s.segs, an: analyse(x, synthHz), gain: 0.55 / pk };
+  // eSpeak marca el fin de la vocal donde empieza la explosión de la consonante siguiente,
+  // así que el final de la «vocal» puede ser ya el silencio de una «t» o una «p». Al
+  // estirar la nota ese silencio se oía como un corte: la vocal termina donde todavía suena.
+  {
+    const F = Math.round(ESR * 0.005), rms = (a) => { let e = 0; for (let i = a; i < a + F; i++) e += x[i] * x[i]; return Math.sqrt(e / F); };
+    let e = v1; while (e - v0 > 4 * F && rms(e - F) < 0.12 * pk) e -= F;
+    v1 = e;
+  }
+  // Silencios dentro de las consonantes (el cierre de «t», «p», «k»): en el canto ligado
+  // duran muy poco. Cada tramo silencioso de más de 15 ms se acorta a 15 ms.
+  ({ x, v0, v1 } = shortenGaps(x, v0, v1, pk));
+  const an = analyse(x, synthHz);
+  // Consonantes sonoras (m, n, l, r): eSpeak las da muy suaves frente a la vocal y se
+  // oían como un hueco; se refuerzan hasta 8 dB, con transiciones suaves.
+  const F = an.hop, nF = an.nF, g = new Float32Array(nF);
+  for (let f = 0; f < nF; f++) {
+    const a = f * F, inCons = a < v0 || a >= v1;
+    let e = 0; for (let i = a; i < Math.min(x.length, a + F); i++) e = Math.max(e, Math.abs(x[i]));
+    g[f] = inCons && an.voiced[f] && e > 0 ? Math.min(2.5, Math.max(1, 0.45 * pk / e)) : 1;
+  }
+  for (let f = 1; f < nF; f++) g[f] = Math.min(g[f], g[f - 1] + 0.25);
+  for (let f = nF - 2; f >= 0; f--) g[f] = Math.min(g[f], g[f + 1] + 0.25);
+  for (let i = 0; i < x.length; i++) {
+    const ff = i / F, f0 = Math.min(nF - 1, Math.floor(ff)), f1 = Math.min(nF - 1, f0 + 1), u = ff - Math.floor(ff);
+    x[i] *= g[f0] * (1 - u) + g[f1] * u;
+  }
+  return { x, v0, v1, segs: s.segs, an, gain: 0.55 / pk };
+}
+
+function shortenGaps(x, v0, v1, pk) {
+  const W = Math.round(ESR * 0.005), keep = Math.round(ESR * 0.015), th = 0.015 * pk;
+  const quiet = (a) => { let e = 0, n = 0; for (let i = a; i < Math.min(x.length, a + W); i++) { e += x[i] * x[i]; n++; } return Math.sqrt(e / Math.max(1, n)) < th; };
+  const cut = [];
+  const scan = (a, b) => {
+    let run = -1;
+    for (let p = a; p + W <= b; p += W) {
+      if (quiet(p)) { if (run < 0) run = p; }
+      else { if (run >= 0 && p - run > keep) cut.push([run + (keep >> 1), p - (keep >> 1)]); run = -1; }
+    }
+    if (run >= 0 && b - run > keep) cut.push(b < x.length ? [run + (keep >> 1), b - (keep >> 1)] : [run + keep, b]);
+  };
+  scan(0, v0); scan(v1, x.length);
+  if (!cut.length) return { x, v0, v1 };
+  const out = []; let pos = 0, nv0 = v0, nv1 = v1;
+  for (const [a, b] of cut) {
+    for (let i = pos; i < a; i++) out.push(x[i]);
+    const d = b - a; if (b <= v0) { nv0 -= d; nv1 -= d; } else if (a >= v1) { /* tras la vocal */ }
+    pos = b;
+  }
+  for (let i = pos; i < x.length; i++) out.push(x[i]);
+  return { x: Float32Array.from(out), v0: nv0, v1: nv1 };
 }
 
 // ---------------------------------------------------------------- guía instrumental
@@ -370,7 +446,7 @@ async function renderTrack(job, tr, total, progress) {
     s.xout = !!(nx && nx.segs[0].start - end < 0.01);
     if (s.xout) {
       // termina dentro de la entrada de la sílaba siguiente, que empieza con fundido
-      endT = nx.segs[0].start - Math.min(nx.v0 / ESR, 0.085) + XFADE;
+      endT = nx.segs[0].start - preOf(nx) + XFADE;
       nx.xin = true;
     } else endT = end - 0.03;
     endT = Math.max(endT, s.segs[0].start + 0.06);
