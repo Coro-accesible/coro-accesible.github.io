@@ -441,14 +441,114 @@ function renderGuide(notes, len) {
   return out;
 }
 
+// ---------------------------------------------------------------- sonido de coro (vocal)
+// Como el «coro Aah / Ooh» de MuseScore: no pronuncia, es un instrumento de voces.
+// Síntesis aditiva: cada armónico toma la amplitud que le da la envolvente de la vocal
+// (sus formantes). Tres voces algo desafinadas entre sí, con vibrato propio, dan el efecto
+// de grupo; un poco de soplo y de sala completan el sonido.
+const FORMANTS = {
+  m: { a: [[700, 0, 90], [1150, -6, 100], [2700, -24, 140], [3300, -30, 180]],
+       e: [[450, 0, 80], [1800, -12, 100], [2600, -20, 140], [3300, -30, 180]],
+       i: [[300, 0, 70], [2200, -20, 110], [2900, -24, 140], [3500, -32, 180]],
+       o: [[450, 0, 80], [800, -8, 90], [2600, -28, 140], [3300, -34, 180]],
+       u: [[330, 0, 70], [700, -16, 90], [2500, -32, 140], [3300, -40, 180]] },
+  f: { a: [[850, 0, 100], [1250, -6, 110], [2900, -24, 150], [3900, -32, 200]],
+       e: [[500, 0, 90], [2000, -12, 110], [2900, -20, 150], [3900, -32, 200]],
+       i: [[330, 0, 80], [2600, -20, 120], [3200, -24, 150], [4000, -32, 200]],
+       o: [[500, 0, 90], [900, -8, 100], [2850, -28, 150], [3800, -36, 200]],
+       u: [[380, 0, 80], [850, -16, 100], [2700, -32, 150], [3700, -40, 200]] },
+};
+function vowelEnv(fr, f) {
+  let a = 0;
+  for (const [F, g, B] of fr) {
+    const x = (f - F) / (B / 2);
+    a += Math.pow(10, g / 20) / Math.sqrt(1 + x * x);
+  }
+  return a;
+}
+const SIN_N = 4096, SIN = new Float32Array(SIN_N + 1);
+for (let i = 0; i <= SIN_N; i++) SIN[i] = Math.sin(2 * Math.PI * i / SIN_N);
+function renderChoir(words, opt, len) {
+  const out = new Float32Array(len);
+  const fr = (FORMANTS[opt.female ? 'f' : 'm'] || FORMANTS.m)[opt.vowel] || FORMANTS.m.a;
+  const notes = [];
+  for (const w of words) for (const s of w.syls) notes.push(s.segs);
+  const ATT = 0.07, REL = 0.12, GL = 0.05, BLK = 128, NY = ESR * 0.45;
+  const VOICES = [{ det: 0, vr: 5.3, ph: 0 }, { det: -7, vr: 5.0, ph: 1.7 }, { det: 8, vr: 5.7, ph: 3.9 }];
+  let seed = 12345; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
+  for (let k = 0; k < notes.length; k++) {
+    const segs = notes[k], t0 = segs[0].start, t1 = segs[segs.length - 1].end;
+    const next = notes[k + 1];
+    const legato = next && next[0].start - t1 < 0.01;
+    const endT = t1 + (legato ? 0.03 : 0) ;
+    const s0 = Math.round(t0 * ESR), n = Math.round((endT - t0) * ESR) + Math.round(REL * ESR);
+    // altura instante a instante, con un deslizamiento corto entre las notas de un melisma
+    const hzAt = (t) => {
+      let j = 0; while (j + 1 < segs.length && t >= segs[j + 1].start) j++;
+      const h = segs[j].hz;
+      if (j > 0 && t - segs[j].start < GL) { const u = (t - segs[j].start) / GL; return segs[j - 1].hz * Math.pow(h / segs[j - 1].hz, u * u * (3 - 2 * u)); }
+      return h;
+    };
+    const durN = Math.round((endT - t0) * ESR);
+    for (const v of VOICES) {
+      const vph = v.ph + rnd() * 6, cents = v.det + (rnd() - 0.5) * 4;
+      let phase = rnd();
+      let amps = null, nh = 0, lastHz = 0;
+      for (let i = 0; i < n && s0 + i < len; i++) {
+        const t = i / ESR, T = t0 + t;
+        let hz = hzAt(Math.min(T, t1 - 1e-4)) * Math.pow(2, cents / 1200);
+        const vd = 0.22 * Math.min(1, Math.max(0, (t - 0.2) / 0.4));      // vibrato que entra poco a poco
+        hz *= Math.pow(2, vd * Math.sin(2 * Math.PI * v.vr * t + vph) / 12);
+        if (i % BLK === 0 || !amps) {
+          if (!amps || Math.abs(hz - lastHz) > lastHz * 0.01) {
+            nh = Math.max(1, Math.min(60, Math.floor(NY / hz)));
+            amps = new Float32Array(nh + 1);
+            for (let h = 1; h <= nh; h++) amps[h] = vowelEnv(fr, h * hz) / Math.pow(h, 0.7);
+            lastHz = hz;
+          }
+        }
+        phase += hz / ESR; phase -= Math.floor(phase);
+        let y = 0;
+        for (let h = 1; h <= nh; h++) { const p = (phase * h) % 1; y += amps[h] * SIN[(p * SIN_N) | 0]; }
+        let env = Math.min(1, t / ATT);
+        env = env * env * (3 - 2 * env);
+        if (i > durN) env *= Math.max(0, 1 - (i - durN) / (REL * ESR));
+        // pequeño soplo de aire, sobre todo al empezar la nota
+        y += (rnd() - 0.5) * 0.06 * (1 + 2 * Math.max(0, 1 - t / 0.15));
+        out[s0 + i] += y * env * 0.33;
+      }
+    }
+  }
+  return reverb(out);
+}
+// sala pequeña (Schroeder): cuatro peines en paralelo y dos pasatodo
+function reverb(x) {
+  const y = new Float32Array(x.length);
+  const combs = [1116, 1188, 1277, 1356].map(d => ({ b: new Float32Array(Math.round(d * ESR / 44100)), i: 0, f: 0 }));
+  const aps = [556, 441].map(d => ({ b: new Float32Array(Math.round(d * ESR / 44100)), i: 0 }));
+  for (let n = 0; n < x.length; n++) {
+    let s = 0;
+    for (const c of combs) { const o = c.b[c.i]; c.f = o * 0.7 + c.f * 0.3; c.b[c.i] = x[n] + c.f * 0.78; c.i = (c.i + 1) % c.b.length; s += o; }
+    s *= 0.25;
+    for (const a of aps) { const o = a.b[a.i]; const v = s + o * 0.5; a.b[a.i] = v; a.i = (a.i + 1) % a.b.length; s = o - v * 0.5; }
+    y[n] = x[n] * 0.8 + s * 0.35;
+  }
+  return y;
+}
+
 const tick = () => new Promise(r => setTimeout(r, 0));
 
 async function renderTrack(job, tr, total, progress) {
   const len = Math.ceil(total * ESR) + ESR;
   const voice = new Float32Array(len);
   const syls = [];
+  if (tr.choir) {
+    for (let k = 0; k < tr.words.length; k++) progress();
+    const v = renderChoir(tr.words, tr.choir, len);
+    voice.set(v.subarray(0, len));
+  }
   let w = 0;
-  for (const word of tr.words) {
+  for (const word of (tr.choir ? [] : tr.words)) {
     try { syls.push(...prepareWord(word, tr.lang, tr.variant)); }
     catch (e) { /* palabra imposible: se omite */ }
     if (++w % 12 === 0) { progress(); await tick(); if (job !== latestJob) return null; }

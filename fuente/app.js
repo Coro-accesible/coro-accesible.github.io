@@ -151,7 +151,8 @@ function startRender() {
     const b = buildWords(st.score, tr, st.speed, st.transpose, st.lang, vw);
     tr.sylList = b.sylList; tr.words = b.words; tr.buf = null;
     // la vocal se canta siempre con la pronunciación española: «a», «o» puras en cualquier idioma
-    payload.push({ id: tr.id, lang: vw ? 'es-419' : st.lang, variant: tr.mix.variant, words: b.words, notes: b.guide });
+    payload.push({ id: tr.id, lang: st.lang, variant: tr.mix.variant, words: b.words, notes: b.guide,
+      choir: vw ? { vowel: vw, female: /^f/.test(tr.mix.variant) } : null });
   }
   $('prog').hidden = false; $('prog').value = 0;
   status('Generando voces… 0 %');
@@ -273,7 +274,7 @@ const VARIANTS = [
   ['f1', 'Femenina 1'], ['f2', 'Femenina 2'], ['f3', 'Femenina 3'], ['f4', 'Femenina 4'], ['f5', 'Femenina 5'],
   ['base', 'Masculina 1'], ['m1', 'Masculina 2'], ['m2', 'Masculina 3'], ['m3', 'Masculina 4'], ['m4', 'Masculina 5'],
 ];
-// Canto con vocal: «a» para las voces con timbre femenino y «o» para las masculinas, salvo que
+// Canto con vocal (sonido de coro, como el «coro Aah / Ooh» de MuseScore): «a» para las voces con timbre femenino y «o» para las masculinas, salvo que
 // se elija otra vocal para esa voz en el mezclador.
 const VOWELS = [['', 'Automática (a u o según el timbre)'], ['a', 'a'], ['e', 'e'], ['i', 'i'], ['o', 'o'], ['u', 'u']];
 function vowelOf(t) { return t.mix.vowel || (/^f/.test(t.mix.variant) ? 'a' : 'o'); }
