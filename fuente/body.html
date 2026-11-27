@@ -140,6 +140,14 @@
           <div class="inline"><input type="number" id="numTrans" min="-12" max="12" step="1" value="0"></div>
         </div>
         <div class="field">
+          <label for="selSing">Cantar</label>
+          <select id="selSing" aria-keyshortcuts="Alt+Shift+V" aria-describedby="singHint">
+            <option value="lyrics">Con la letra</option>
+            <option value="vowel">Con vocal (a en voces femeninas, o en masculinas)</option>
+          </select>
+          <p class="hint" id="singHint">Con vocal, cada voz canta sus notas en una sola vocal, como en MuseScore. La vocal de cada voz se cambia en el mezclador. Atajo: Alt+Mayús+V.</p>
+        </div>
+        <div class="field">
           <label for="selLang">Idioma de la letra</label>
           <select id="selLang">
             <option value="es-419">Español latinoamericano</option>
@@ -193,6 +201,7 @@
     <h3>2. Generación de las voces</h3>
     <p>Al abrir la partitura, Corale genera una pista cantada para cada voz (por ejemplo, Soprano, Contralto, Tenor y Bajo). Si un pentagrama tiene dos voces, se separan en dos pistas. La barra de estado muestra el avance y el lector de pantalla anuncia cuando está listo. Si cambia la velocidad, el transporte, el idioma o el timbre de una voz, las voces se vuelven a generar.</p>
     <p>Las repeticiones, las casillas de 1.ª y 2.ª vez y las estrofas se respetan: en la segunda vuelta se canta la segunda estrofa. Las notas sin sílaba que siguen a una sílaba se cantan como melisma. En español, italiano, latín y otras lenguas romances, cuando una palabra termina con la misma vocal con que empieza la siguiente, Corale las une como lo haría un coro: «donde estás» se canta «donde stás». La letra en pantalla no cambia.</p>
+    <p>Para estudiar solo las alturas y el ritmo, en Ajustes elija <b>Cantar: con vocal</b> (o pulse Alt+Mayús+V). Las sopranos y contraltos cantan con «a» y los tenores y bajos con «o»; en el mezclador se puede elegir otra vocal para cada voz. Las voces que no tienen letra también cantan. La letra sigue en pantalla.</p>
 
     <h3>3. Reproducir y moverse</h3>
     <p>Use los botones de la barra de reproducción o el menú <b>Reproducción</b>. Puede ir al compás anterior o siguiente, saltar a un compás concreto, activar el metrónomo, añadir un compás de entrada antes de empezar y repetir una sección (indique “desde” y “hasta” en Ajustes). Alt+Mayús+A dice en voz alta el compás, el pulso y la palabra que suena.</p>

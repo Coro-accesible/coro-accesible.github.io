@@ -19,7 +19,7 @@ const st = {
   tracks: [], ready: false, job: 0, totalSec: 0,
   mine: null, mode: 'all',
   playing: false, startCtx: 0, startPos: 0, pos: 0, loop: null,
-  lyrTrack: null, metroBuf: null, expMetro: false,
+  lyrTrack: null, metroBuf: null, expMetro: false, vowel: false,
 };
 let ctx = null, master = null, metroGain = null;
 let sources = [];
@@ -147,9 +147,11 @@ function startRender() {
   st.totalSec = qToSec(st.score, st.score.totalQ) / st.speed;
   const payload = [];
   for (const tr of st.tracks) {
-    const b = buildWords(st.score, tr, st.speed, st.transpose, st.lang);
+    const vw = st.vowel && !tr.instrumental ? vowelOf(tr) : '';
+    const b = buildWords(st.score, tr, st.speed, st.transpose, st.lang, vw);
     tr.sylList = b.sylList; tr.words = b.words; tr.buf = null;
-    payload.push({ id: tr.id, lang: st.lang, variant: tr.mix.variant, words: b.words, notes: b.guide });
+    // la vocal se canta siempre con la pronunciación española: «a», «o» puras en cualquier idioma
+    payload.push({ id: tr.id, lang: vw ? 'es-419' : st.lang, variant: tr.mix.variant, words: b.words, notes: b.guide });
   }
   $('prog').hidden = false; $('prog').value = 0;
   status('Generando voces… 0 %');
@@ -182,10 +184,10 @@ async function loadXml(xml, name, source = 'MusicXML', warnings = []) {
   st.tracks = score.tracks.map((t, i) => ({
     ...t,
     mix: {
-      voice: t.hasLyrics ? 80 : 0, guide: t.instrumental ? 55 : t.hasLyrics ? 20 : 60,
+      voice: (t.hasLyrics || (st.vowel && !t.instrumental)) ? 80 : 0, guide: t.instrumental ? 55 : (t.hasLyrics || st.vowel) ? 20 : 60,
       pan: score.tracks.length > 1 ? Math.round(-60 + 120 * i / (score.tracks.length - 1)) : 0,
       mute: false, solo: false,
-      variant: defaultVariant(t, i, score.tracks),
+      variant: defaultVariant(t, i, score.tracks), vowel: '',
     },
     buf: null, sylList: [], words: [],
   }));
@@ -271,6 +273,22 @@ const VARIANTS = [
   ['f1', 'Femenina 1'], ['f2', 'Femenina 2'], ['f3', 'Femenina 3'], ['f4', 'Femenina 4'], ['f5', 'Femenina 5'],
   ['base', 'Masculina 1'], ['m1', 'Masculina 2'], ['m2', 'Masculina 3'], ['m3', 'Masculina 4'], ['m4', 'Masculina 5'],
 ];
+// Canto con vocal: «a» para las voces con timbre femenino y «o» para las masculinas, salvo que
+// se elija otra vocal para esa voz en el mezclador.
+const VOWELS = [['', 'Automática (a u o según el timbre)'], ['a', 'a'], ['e', 'e'], ['i', 'i'], ['o', 'o'], ['u', 'u']];
+function vowelOf(t) { return t.mix.vowel || (/^f/.test(t.mix.variant) ? 'a' : 'o'); }
+function vowelSummary() {
+  const v = st.tracks.filter(t => !t.instrumental);
+  return v.length ? v.map(t => `${t.name} con «${vowelOf(t)}»`).join(', ') : '';
+}
+function setVowel(on) {
+  st.vowel = on; $('selSing').value = on ? 'vowel' : 'lyrics';
+  document.querySelectorAll('.vowel-row').forEach(el => { el.hidden = !on; });
+  // las voces sin letra también cantan con la vocal
+  if (st.tracks.some(t => !t.instrumental && !t.hasLyrics)) applyMode();
+  if (st.score) scheduleRender();
+  say(on ? `Cantar con vocal activado. ${vowelSummary()}.${st.score ? ' Regenerando.' : ''}` : `Cantar con la letra.${st.score ? ' Regenerando.' : ''}`);
+}
 function buildMixerUI() {
   const box = $('tracks');
   box.innerHTML = '';
@@ -305,7 +323,11 @@ function buildMixerUI() {
         <button id="s-${i}" aria-pressed="false" aria-label="Solo ${esc(t.name)}" ${n <= 9 ? `aria-keyshortcuts="Control+Shift+${n} Alt+Shift+${n}"` : ''}>Solo${n <= 9 ? ` <kbd aria-hidden="true">Ctrl+Mayús+${n}</kbd>` : ''}</button>
         <label class="sr-only" for="t-${i}">Timbre de ${esc(t.name)}</label>
         <select id="t-${i}" ${t.instrumental ? 'hidden' : ''}>${VARIANTS.map(([v, l]) => `<option value="${v}" ${v === t.mix.variant ? 'selected' : ''}>${l}</option>`).join('')}</select>
-      </div>`;
+      </div>
+      ${t.instrumental ? '' : `<div class="trow vowel-row" ${st.vowel ? '' : 'hidden'}>
+        <label for="w-${i}">Vocal</label>
+        <select id="w-${i}" aria-label="Vocal para cantar, ${esc(t.name)}">${VOWELS.map(([v, l]) => `<option value="${v}" ${v === t.mix.vowel ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      </div>`}`;
     box.appendChild(fs);
     $(`v-${i}`).oninput = (e) => { t.mix.voice = +e.target.value; $(`vo-${i}`).textContent = t.mix.voice; applyGains(); };
     $(`g-${i}`).oninput = (e) => { t.mix.guide = +e.target.value; $(`go-${i}`).textContent = t.mix.guide; applyGains(); };
@@ -313,6 +335,7 @@ function buildMixerUI() {
     $(`m-${i}`).onclick = () => { t.mix.mute = !t.mix.mute; refreshTrackButtons(); applyGains(); say(`${t.name} ${t.mix.mute ? 'silenciada' : 'activada'}`); };
     $(`s-${i}`).onclick = () => toggleSolo(i);
     $(`t-${i}`).onchange = (e) => { t.mix.variant = e.target.value; scheduleRender(); say(`Timbre de ${t.name}: ${e.target.selectedOptions[0].text}. Regenerando.`); };
+    if (!t.instrumental) $(`w-${i}`).onchange = (e) => { t.mix.vowel = e.target.value; if (st.vowel) scheduleRender(); say(`${t.name} canta con «${vowelOf(t)}».${st.vowel ? ' Regenerando.' : ''}`); };
   });
   refreshTrackButtons();
 }
@@ -340,9 +363,9 @@ function applyMode() {
   st.tracks.forEach((t, i) => {
     t.mix.solo = false; t.mix.mute = false;
     const mine = t.id === st.mine;
-    const baseV = t.hasLyrics ? 80 : 0;
+    const sings = t.hasLyrics || st.vowel, baseV = sings ? 80 : 0;
     if (t.instrumental) { setSlider(i, 'v', 0); setSlider(i, 'g', { all: 55, lead: 40, solo: 0, minus: 55 }[st.mode]); return; }
-    if (st.mode === 'all') { setSlider(i, 'v', baseV); setSlider(i, 'g', t.hasLyrics ? 20 : 60); }
+    if (st.mode === 'all') { setSlider(i, 'v', baseV); setSlider(i, 'g', sings ? 20 : 60); }
     if (st.mode === 'lead') { setSlider(i, 'v', mine ? 100 : Math.round(baseV * 0.35)); setSlider(i, 'g', mine ? 35 : 10); }
     if (st.mode === 'solo') { setSlider(i, 'v', mine ? 90 : 0); setSlider(i, 'g', mine ? 30 : 0); }
     if (st.mode === 'minus') { setSlider(i, 'v', mine ? 0 : baseV); setSlider(i, 'g', mine ? 0 : 20); }
@@ -608,6 +631,7 @@ function setSpeed(v) {
 }
 $('rngSpeed').oninput = (e) => setSpeed(+e.target.value);
 $('numTrans').onchange = (e) => { st.transpose = Math.max(-12, Math.min(12, parseInt(e.target.value) || 0)); e.target.value = st.transpose; scheduleRender(); say(`Transportado ${st.transpose} semitonos. Regenerando.`); };
+$('selSing').onchange = (e) => setVowel(e.target.value === 'vowel');
 $('selLang').onchange = (e) => { st.lang = e.target.value; prefs.lang = st.lang; savePrefs(); scheduleRender(); say(`Idioma: ${e.target.selectedOptions[0].text}. Regenerando.`); };
 
 // ------------------------------------------------------------------ letra
@@ -993,6 +1017,7 @@ const MENUS = [
     { type: 'check', label: 'Metrónomo', keys: 'Alt+Mayús+M', aria: 'Alt+Shift+M', checked: () => $('chkMetro').checked, act: () => $('chkMetro').click() },
     { type: 'check', label: 'Compás de entrada', checked: () => $('chkCount').checked, act: () => $('chkCount').click() },
     { type: 'check', label: 'Repetir sección', keys: 'Ctrl+Mayús+L', aria: 'Control+Shift+L Alt+Shift+L', checked: () => $('chkLoop').checked, act: () => $('chkLoop').click() },
+    { type: 'check', label: 'Cantar con vocal en lugar de la letra', keys: 'Alt+Mayús+V', aria: 'Alt+Shift+V', checked: () => st.vowel, act: () => setVowel(!st.vowel) },
     { sep: true },
     { label: 'Más rápido (5 %)', keys: 'Alt+Mayús+↑', aria: 'Alt+Shift+ArrowUp', act: () => speedBy(5) },
     { label: 'Más lento (5 %)', keys: 'Alt+Mayús+↓', aria: 'Alt+Shift+ArrowDown', act: () => speedBy(-5) },
@@ -1161,6 +1186,7 @@ const KEYS = [
   ['KeyA', 'Alt+Mayús+A', 'Decir la posición y la letra actuales', announcePosition],
   ['KeyM', 'Alt+Mayús+M', 'Metrónomo sí/no', () => $('chkMetro').click()],
   ['KeyL', 'Ctrl+Mayús+L o Alt+Mayús+L', 'Repetir sección sí/no', () => $('chkLoop').click(), 'KeyL'],
+  ['KeyV', 'Alt+Mayús+V', 'Cantar con vocal en lugar de la letra sí/no', () => setVowel(!st.vowel)],
   ['ArrowUp', 'Alt+Mayús+Flecha arriba', 'Más rápido (5 %)', () => speedBy(5)],
   ['ArrowDown', 'Alt+Mayús+Flecha abajo', 'Más lento (5 %)', () => speedBy(-5)],
   ['Digit1', 'Ctrl+Mayús+1 a 9 o Alt+Mayús+1 a 9', 'Solo de la voz 1 a 9', null],

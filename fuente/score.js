@@ -312,7 +312,7 @@ export function secToQ(score, s) {
 }
 
 // Palabras para el motor de canto
-export function buildWords(score, track, speed, transpose, lang = '') {
+export function buildWords(score, track, speed, transpose, lang = '', vowel = '') {
   const toSec = q => qToSec(score, q) / speed;
   const hz = m => 440 * Math.pow(2, (m + transpose - 69) / 12);
   if (track.instrumental) {
@@ -340,6 +340,13 @@ export function buildWords(score, track, speed, transpose, lang = '') {
       cur = null; lastSyl = null;
       words.push({ syls: [{ text: 'u', segs: [seg] }] });
     }
+  }
+  if (vowel) {
+    // Canto con vocal (vocalización): cada sílaba se canta con la misma vocal, sin consonantes.
+    // Los melismas se mantienen ligados. La letra en pantalla no cambia.
+    const vw = [];
+    for (const w of words) for (const sy of w.syls) vw.push({ syls: [{ text: vowel, segs: sy.segs }], lyric: true });
+    return { words: vw, guide: track.notes.map(n => ({ start: toSec(n.q), end: toSec(n.q + n.d), hz: hz(n.midi) })), sylList };
   }
   if (/^(es|it|la|pt|ca|gl|qu|eu)/.test(lang)) applySinalefa(words);
   const guide = track.notes.map(n => ({ start: toSec(n.q), end: toSec(n.q + n.d), hz: hz(n.midi) }));
