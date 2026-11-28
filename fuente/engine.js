@@ -468,7 +468,80 @@ function vowelEnv(fr, f) {
 }
 const SIN_N = 4096, SIN = new Float32Array(SIN_N + 1);
 for (let i = 0; i <= SIN_N; i++) SIN[i] = Math.sin(2 * Math.PI * i / SIN_N);
+// Coro grabado: las grabaciones «Aah» y «Ooh» del banco MS Basic de MuseScore (licencia MIT),
+// las mismas que usa MuseScore cuando una parte de coro canta sin Muse Sounds.
+// Cada nota toma la grabación más cercana y la reproduce a su altura; las notas largas repiten
+// en bucle la parte sostenida. «a» usa el coro Aah y «o» el coro Ooh; «e», «i» y «u» no tienen
+// grabación propia y se aproximan filtrando la más cercana.
+let CHOIR = null;
+function biquad(x, type, f, q, gainDb) {
+  const w = 2 * Math.PI * f / ESR, c = Math.cos(w), s = Math.sin(w), al = s / (2 * q), A = Math.pow(10, gainDb / 40);
+  let b0, b1, b2, a0, a1, a2;
+  if (type === 'peak') { b0 = 1 + al * A; b1 = -2 * c; b2 = 1 - al * A; a0 = 1 + al / A; a1 = -2 * c; a2 = 1 - al / A; }
+  else { b0 = (1 - c) / 2; b1 = 1 - c; b2 = (1 - c) / 2; a0 = 1 + al; a1 = -2 * c; a2 = 1 - al; }
+  b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let n = 0; n < x.length; n++) {
+    const v = x[n], y = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1; x1 = v; y2 = y1; y1 = y; x[n] = y;
+  }
+}
+const VOWEL_EQ = {
+  e: [['peak', 750, 1.2, -7], ['peak', 2000, 1.4, 7]],
+  i: [['peak', 750, 1.0, -11], ['peak', 2500, 1.6, 10], ['peak', 300, 1.2, 4]],
+  u: [['low', 1100, 0.7, 0], ['peak', 700, 1.2, -4]],
+};
+function renderChoirSampled(words, opt, len) {
+  const out = new Float32Array(len);
+  const set = /[ou]/.test(opt.vowel) ? CHOIR.ooh : CHOIR.aah;
+  const notes = [];
+  for (const w of words) for (const s of w.syls) notes.push(s.segs);
+  const REL = 0.16, GL = 0.05;
+  const midi = (hz) => 69 + 12 * Math.log2(hz / 440);
+  for (let k = 0; k < notes.length; k++) {
+    const segs = notes[k], t0 = segs[0].start, t1 = segs[segs.length - 1].end;
+    const next = notes[k + 1];
+    const legato = next && next[0].start - t1 < 0.01;
+    const endT = t1 + (legato ? 0.04 : 0);
+    const m0 = Math.round(midi(segs[0].hz));
+    let z = set.find(z => m0 >= z.lo && m0 <= z.hi);
+    if (!z) z = m0 < set[0].lo ? set[0] : set[set.length - 1];
+    const x = z.pcm, loopN = z.le - z.ls;
+    // la grabación empieza un poco antes para que la voz «llegue» a tiempo
+    const pre = Math.min(z.on, Math.round(ESR * 0.09));
+    const hzAt = (t) => {
+      let j = 0; while (j + 1 < segs.length && t >= segs[j + 1].start) j++;
+      const h = segs[j].hz;
+      if (j > 0 && t - segs[j].start < GL) { const u = (t - segs[j].start) / GL; return segs[j - 1].hz * Math.pow(h / segs[j - 1].hz, u * u * (3 - 2 * u)); }
+      return h;
+    };
+    const s0 = Math.round(t0 * ESR) - pre;
+    const durN = Math.round((endT - t0) * ESR) + pre, n = durN + Math.round(REL * ESR);
+    let p = 0, lastHz = 0, rate = 1;
+    for (let i = 0; i < n; i++) {
+      const o = s0 + i;
+      if (o >= len) break;
+      if ((i & 31) === 0) {
+        const T = Math.max(t0, Math.min(t0 + (i - pre) / ESR, t1 - 1e-4));
+        const hz = hzAt(T);
+        if (hz !== lastHz) { rate = Math.pow(2, (midi(hz) - z.root) / 12 + z.corr / 1200); lastHz = hz; }
+      }
+      const a = Math.floor(p), f = p - a;
+      const b = a + 1 >= z.le ? a + 1 - loopN : a + 1;
+      let v = x[a] + (x[b] - x[a]) * f;
+      if (i > durN) { const r = (i - durN) / (REL * ESR); v *= (1 - r) * (1 - r); }
+      if (o >= 0) out[o] += v;
+      p += rate;
+      while (p >= z.le) p -= loopN;
+    }
+  }
+  // las grabaciones «Ooh» traen algo de soplido agudo: se suaviza
+  if (set === CHOIR.ooh) biquad(out, 'low', 5500, 0.7, 0);
+  for (const [type, f, q, g] of (VOWEL_EQ[opt.vowel] || [])) biquad(out, type, f, q, g);
+  return reverb(out, 0.15);
+}
 function renderChoir(words, opt, len) {
+  if (CHOIR) return renderChoirSampled(words, opt, len);
   const out = new Float32Array(len);
   const fr = (FORMANTS[opt.female ? 'f' : 'm'] || FORMANTS.m)[opt.vowel] || FORMANTS.m.a;
   const notes = [];
@@ -522,7 +595,7 @@ function renderChoir(words, opt, len) {
   return reverb(out);
 }
 // sala pequeña (Schroeder): cuatro peines en paralelo y dos pasatodo
-function reverb(x) {
+function reverb(x, wet = 0.35) {
   const y = new Float32Array(x.length);
   const combs = [1116, 1188, 1277, 1356].map(d => ({ b: new Float32Array(Math.round(d * ESR / 44100)), i: 0, f: 0 }));
   const aps = [556, 441].map(d => ({ b: new Float32Array(Math.round(d * ESR / 44100)), i: 0 }));
@@ -531,7 +604,7 @@ function reverb(x) {
     for (const c of combs) { const o = c.b[c.i]; c.f = o * 0.7 + c.f * 0.3; c.b[c.i] = x[n] + c.f * 0.78; c.i = (c.i + 1) % c.b.length; s += o; }
     s *= 0.25;
     for (const a of aps) { const o = a.b[a.i]; const v = s + o * 0.5; a.b[a.i] = v; a.i = (a.i + 1) % a.b.length; s = o - v * 0.5; }
-    y[n] = x[n] * 0.8 + s * 0.35;
+    y[n] = x[n] * 0.8 + s * wet;
   }
   return y;
 }
@@ -597,6 +670,8 @@ globalThis.onmessage = async (ev) => {
     postMessage({ type: 'done', job });
   } else if (msg.cmd === 'piano') {
     PIANO = { notes: msg.notes, pcm: msg.pcm };
+  } else if (msg.cmd === 'choir') {
+    CHOIR = msg.sets;
   } else if (msg.cmd === 'cancel') {
     latestJob = -1;
   }

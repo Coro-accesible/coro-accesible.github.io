@@ -107,6 +107,52 @@ async function loadPiano() {
     diag.piano = 'sintetizado (no se pudo cargar el piano: ' + (e && e.message || e) + ')';
   }
 }
+// Coro grabado «Aah» y «Ooh» (banco MS Basic de MuseScore, licencia MIT). Se carga solo la
+// primera vez que se canta con vocal. Si no se puede decodificar, el motor usa su coro sintetizado.
+let choirReady = null, choirDone = false;
+function loadChoir() {
+  if (choirReady) return choirReady;
+  choirReady = (async () => {
+    try {
+      diag.coro = 'cargando';
+      await loadScript('cantor-coro.js');
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const oc = new OAC(1, 1, SR);
+      const dec = async (b64) => {
+        const raw = atob(b64), bin = new Uint8Array(raw.length);
+        for (let k = 0; k < raw.length; k++) bin[k] = raw.charCodeAt(k);
+        const ab = await new Promise((res, rej) => { const pr = oc.decodeAudioData(bin.buffer, res, rej); if (pr && pr.then) pr.then(res, rej); });
+        return ab.getChannelData(0);
+      };
+      const sets = {}, bufs = [];
+      for (const key of Object.keys(self.CANTOR_CHOIR)) {
+        sets[key] = await Promise.all(self.CANTOR_CHOIR[key].map(async (z) => {
+          const L = await dec(z.d), R = z.dr ? await dec(z.dr) : null;
+          const k = SR / z.rate, n = Math.min(L.length, R ? R.length : L.length);
+          const x = new Float32Array(n);
+          for (let i = 0; i < n; i++) x[i] = R ? (L[i] + R[i]) * 0.5 : L[i];
+          const ls = Math.round(z.ls * k), le = Math.min(n - 1, Math.round(z.le * k));
+          // mismo volumen para todas las grabaciones: se iguala la parte sostenida
+          let e = 0; for (let i = ls; i < le; i++) e += x[i] * x[i];
+          const g = 0.2 / Math.max(1e-6, Math.sqrt(e / Math.max(1, le - ls)));
+          for (let i = 0; i < n; i++) x[i] *= g;
+          // tiempo que tarda la grabación en llegar a la mitad de su volumen: el motor la adelanta
+          const w = Math.round(SR * 0.01); let s = 0, on = 0;
+          for (let i = 0; i < n; i++) { s += x[i] * x[i]; if (i >= w) s -= x[i - w] * x[i - w]; if (i >= w && Math.sqrt(s / w) > 0.1) { on = i - (w >> 1); break; } }
+          bufs.push(x.buffer);
+          return { lo: z.lo, hi: z.hi, root: z.root, corr: z.corr, ls, le, on, pcm: x };
+        }));
+      }
+      self.CANTOR_CHOIR = null;
+      engine.postMessage({ cmd: 'choir', sets }, bufs);
+      diag.coro = 'coro grabado (MS Basic)';
+    } catch (e) {
+      diag.coro = 'sintetizado (no se pudo cargar el coro grabado: ' + (e && e.message || e) + ')';
+    }
+    choirDone = true;
+  })();
+  return choirReady;
+}
 function onEngineMessage(ev) {
   const m = ev.data;
   if (m.type === 'ready') {
@@ -140,6 +186,11 @@ function onEngineMessage(ev) {
 function startRender() {
   if (!st.score) return;
   if (!engineReady) { status('Partitura cargada. Esperando al motor de voz…'); return; }
+  if (st.vowel && !choirDone) {
+    status('Cargando el sonido de coro…');
+    loadChoir().then(() => startRender());
+    return;
+  }
   stop(false);
   st.ready = false;
   setTransportEnabled(false);

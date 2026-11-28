@@ -16,6 +16,14 @@ for m in range(21, 109, 3):
     f = F + '/datos/piano/%s%d.mp3' % (NM[m % 12], m // 12 - 1)
     pn.append('[%d,"%s"]' % (m, base64.b64encode(open(f, 'rb').read()).decode()))
 open(R + '/cantor-piano.js', 'w').write('/* Salamander Grand Piano V2 (Yamaha C5), de Alexander Holm, CC BY 3.0 */\nself.CANTOR_PIANO=[' + ',\n'.join(pn) + '];\n')
+# Coro «Aah» y «Ooh» del banco de sonidos MS Basic de MuseScore (MIT; ver datos/coro/LICENCIA-MS-Basic.md)
+zon = json.load(open(F + '/datos/coro/zonas.json', encoding='utf-8'))
+b64 = lambda f: base64.b64encode(open(F + '/datos/coro/' + f, 'rb').read()).decode()
+for k in zon:
+    for z in zon[k]:
+        z['d'] = b64(z.pop('f')); fr = z.pop('fr', None)
+        if fr: z['dr'] = b64(fr)
+open(R + '/cantor-coro.js', 'w').write('/* Coro Aah / Ooh de MS Basic (MuseScore): FluidR3 de Frank Wen, FluidR3Mono de Michael Cowgill,\n   adaptado por S. Christian Collins. Licencia MIT (fuente/datos/coro/LICENCIA-MS-Basic.md). */\nself.CANTOR_CHOIR=' + json.dumps(zon) + ';\n')
 ex = {}
 for k, f in [('campanero', 'Campanero.musicxml'), ('canon', 'Campanero-canon-SATB.musicxml'), ('brf', 'Campanero.brf')]:
     ex[k] = open(R + '/ejemplos/' + f, encoding='utf-8').read()

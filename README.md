@@ -60,6 +60,7 @@ En pruebas con 11 obras reales, las voces coincidieron entre 91 % y 100 % de las
 | `cantor-engine.js` | Motor de canto: eSpeak NG compilado a WebAssembly y síntesis de las notas |
 | `cantor-voice-data.js` | Datos de idiomas de eSpeak NG |
 | `cantor-piano.js` | Grabaciones del piano Salamander (30 notas) |
+| `cantor-coro.js` | Grabaciones del coro «Aah» y «Ooh» (banco MS Basic de MuseScore), para cantar con vocal |
 | `verovio-toolkit-wasm.js` | Verovio, para dibujar la partitura |
 | `lame.min.js` | lamejs, para exportar MP3 |
 | `cantor-examples.js` | Ejemplos incluidos en el menú Archivo |
@@ -78,4 +79,5 @@ Usa estos componentes de código abierto:
 - [Verovio](https://github.com/rism-digital/verovio), dibujo de partituras, LGPL-3.0.
 - [lamejs](https://github.com/zhuker/lamejs), codificación MP3, LGPL-3.0.
 - Salamander Grand Piano V2 (Yamaha C5), grabado por Alexander Holm, licencia [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); muestras tomadas de [Tone.js audio](https://github.com/Tonejs/audio).
+- Coro «Aah» y «Ooh» del banco de sonidos MS Basic de [MuseScore](https://github.com/musescore/MuseScore/tree/master/share/sound) (MuseScore_General de S. Christian Collins, basado en FluidR3 de Frank Wen y FluidR3Mono de Michael Cowgill), licencia MIT; aviso completo en `fuente/datos/coro/LICENCIA-MS-Basic.md`.
 - Tipografía [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), del Braille Institute (SIL Open Font License).

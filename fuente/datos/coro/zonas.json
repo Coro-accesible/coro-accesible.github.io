@@ -1,0 +1,248 @@
+{
+ "aah": [
+  {
+   "f": "Ahh_Choir_Ds3-L.ogg",
+   "fr": "Ahh_Choir_Ds3-R.ogg",
+   "lo": 0,
+   "hi": 39,
+   "root": 39,
+   "corr": 37,
+   "ls": 38712,
+   "le": 65958,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Fs3-L.ogg",
+   "fr": "Ahh_Choir_Fs3-R.ogg",
+   "lo": 40,
+   "hi": 42,
+   "root": 42,
+   "corr": 19,
+   "ls": 21521,
+   "le": 73053,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Gs3-L.ogg",
+   "fr": "Ahh_Choir_Gs3-R.ogg",
+   "lo": 43,
+   "hi": 45,
+   "root": 45,
+   "corr": 12,
+   "ls": 28992,
+   "le": 89051,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_C4-L.ogg",
+   "fr": "Ahh_Choir_C4-R.ogg",
+   "lo": 46,
+   "hi": 48,
+   "root": 48,
+   "corr": 20,
+   "ls": 45568,
+   "le": 96481,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Ds4-L.ogg",
+   "fr": "Ahh_Choir_Ds4-R.ogg",
+   "lo": 49,
+   "hi": 51,
+   "root": 51,
+   "corr": 39,
+   "ls": 44077,
+   "le": 100673,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Fs4-L.ogg",
+   "fr": "Ahh_Choir_Fs4-R.ogg",
+   "lo": 52,
+   "hi": 54,
+   "root": 54,
+   "corr": 28,
+   "ls": 34198,
+   "le": 97101,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_A4-L.ogg",
+   "fr": "Ahh_Choir_A4-R.ogg",
+   "lo": 55,
+   "hi": 57,
+   "root": 57,
+   "corr": 33,
+   "ls": 29258,
+   "le": 83485,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_C5-L.ogg",
+   "fr": "Ahh_Choir_C5-R.ogg",
+   "lo": 58,
+   "hi": 60,
+   "root": 60,
+   "corr": 12,
+   "ls": 41654,
+   "le": 81848,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Ds5-L.ogg",
+   "fr": "Ahh_Choir_Ds5-R.ogg",
+   "lo": 61,
+   "hi": 63,
+   "root": 63,
+   "corr": 19,
+   "ls": 33664,
+   "le": 78736,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Fs5-L.ogg",
+   "fr": "Ahh_Choir_Fs5-R.ogg",
+   "lo": 64,
+   "hi": 66,
+   "root": 66,
+   "corr": 12,
+   "ls": 17951,
+   "le": 88029,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_A5-L.ogg",
+   "fr": "Ahh_Choir_A5-R.ogg",
+   "lo": 67,
+   "hi": 69,
+   "root": 69,
+   "corr": -3,
+   "ls": 21023,
+   "le": 77588,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_C6-L.ogg",
+   "fr": "Ahh_Choir_C6-R.ogg",
+   "lo": 70,
+   "hi": 72,
+   "root": 72,
+   "corr": 3,
+   "ls": 17992,
+   "le": 53127,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Ds6-L.ogg",
+   "fr": "Ahh_Choir_Ds6-R.ogg",
+   "lo": 73,
+   "hi": 75,
+   "root": 75,
+   "corr": 28,
+   "ls": 23488,
+   "le": 73396,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_Fs6-L.ogg",
+   "fr": "Ahh_Choir_Fs6-R.ogg",
+   "lo": 76,
+   "hi": 78,
+   "root": 78,
+   "corr": 10,
+   "ls": 15002,
+   "le": 55210,
+   "rate": 32000
+  },
+  {
+   "f": "Ahh_Choir_A6-L.ogg",
+   "fr": "Ahh_Choir_A6-R.ogg",
+   "lo": 79,
+   "hi": 96,
+   "root": 81,
+   "corr": 14,
+   "ls": 26607,
+   "le": 74266,
+   "rate": 32000
+  }
+ ],
+ "ooh": [
+  {
+   "f": "Ohh_Voices_C4.ogg",
+   "fr": null,
+   "lo": 0,
+   "hi": 53,
+   "root": 48,
+   "corr": 0,
+   "ls": 23105,
+   "le": 35457,
+   "rate": 17000
+  },
+  {
+   "f": "Ohh_Voices_Fs4.ogg",
+   "fr": null,
+   "lo": 54,
+   "hi": 59,
+   "root": 54,
+   "corr": 0,
+   "ls": 26026,
+   "le": 41472,
+   "rate": 28000
+  },
+  {
+   "f": "Ohh_Voices_C5.ogg",
+   "fr": null,
+   "lo": 60,
+   "hi": 65,
+   "root": 60,
+   "corr": 0,
+   "ls": 26793,
+   "le": 43464,
+   "rate": 20000
+  },
+  {
+   "f": "Ohh_Voices_Fs5.ogg",
+   "fr": null,
+   "lo": 66,
+   "hi": 71,
+   "root": 66,
+   "corr": 0,
+   "ls": 45263,
+   "le": 61687,
+   "rate": 28000
+  },
+  {
+   "f": "Ohh_Voices_C6.ogg",
+   "fr": null,
+   "lo": 72,
+   "hi": 77,
+   "root": 72,
+   "corr": 0,
+   "ls": 25364,
+   "le": 41274,
+   "rate": 38000
+  },
+  {
+   "f": "Ohh_Voices_Fs6.ogg",
+   "fr": null,
+   "lo": 78,
+   "hi": 83,
+   "root": 78,
+   "corr": 0,
+   "ls": 36096,
+   "le": 47937,
+   "rate": 40000
+  },
+  {
+   "f": "Ohh_Voices_C7.ogg",
+   "fr": null,
+   "lo": 84,
+   "hi": 96,
+   "root": 84,
+   "corr": 0,
+   "ls": 23818,
+   "le": 38671,
+   "rate": 30000
+  }
+ ]
+}
