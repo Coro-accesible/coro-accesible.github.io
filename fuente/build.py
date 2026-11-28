@@ -1,4 +1,4 @@
-# Construye Corale en la raíz del repositorio a partir de la carpeta fuente/.
+# Construye Corole en la raíz del repositorio a partir de la carpeta fuente/.
 # Uso: python3 fuente/build.py
 import base64, os, re, json
 F = os.path.dirname(os.path.abspath(__file__)); R = os.path.dirname(F)
@@ -6,7 +6,7 @@ esp = open(F + '/espeak-ng.module.js', encoding='utf-8').read()
 esp = esp.replace('import.meta.url', '"https://localhost/espeak-ng.js"')
 esp = re.sub(r'export default Module;?\s*$', '', esp.rstrip())
 eng = open(F + '/engine.js', encoding='utf-8').read()
-open(R + '/cantor-engine.js', 'w', encoding='utf-8').write('/* Corale: motor de canto (eSpeak NG, GPL-3.0) */\nself.CANTOR_ENGINE_SRC = function () {\n' + esp + '\nconst createEspeak = Module;\n' + eng + '\n};\n')
+open(R + '/cantor-engine.js', 'w', encoding='utf-8').write('/* Corole: motor de canto (eSpeak NG, GPL-3.0) */\nself.CANTOR_ENGINE_SRC = function () {\n' + esp + '\nconst createEspeak = Module;\n' + eng + '\n};\n')
 data = open(F + '/datos/espeak-ng-data.wasm', 'rb').read()
 open(R + '/cantor-voice-data.js', 'w').write('self.CANTOR_VOICE_DATA="' + base64.b64encode(data).decode() + '";\n')
 # Piano Salamander (Alexander Holm, CC BY 3.0): 30 notas, una cada tercera menor desde La0

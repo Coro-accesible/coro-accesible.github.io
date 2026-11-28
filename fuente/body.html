@@ -4,7 +4,7 @@
 <header class="top">
   <div class="wrap">
     <div class="brand">
-      <h1>Corale</h1>
+      <h1>Corole</h1>
       <p>Ensayo coral con voz sintética</p>
     </div>
     <ul class="menubar" id="menubar" role="menubar" aria-label="Menú principal"></ul>
@@ -186,9 +186,9 @@
 </main>
 
 <dialog id="dlgGuide" aria-labelledby="hGuide">
-  <h2 id="hGuide">Cómo funciona Corale</h2>
+  <h2 id="hGuide">Cómo funciona Corole</h2>
   <div class="guide-wrap guide" tabindex="0">
-    <p>Corale convierte una partitura coral en voces cantadas. Cada voz canta su melodía con la letra escrita en la partitura, usando una voz sintética. Sirve para estudiar la parte propia, escuchar las demás y ensayar con metrónomo, a la velocidad que haga falta.</p>
+    <p>Corole convierte una partitura coral en voces cantadas. Cada voz canta su melodía con la letra escrita en la partitura, usando una voz sintética. Sirve para estudiar la parte propia, escuchar las demás y ensayar con metrónomo, a la velocidad que haga falta.</p>
 
     <h3>1. Abrir una partitura</h3>
     <p>En <b>Archivo › Abrir partitura</b> (Alt+Mayús+O) elija un archivo. Formatos admitidos:</p>
@@ -199,8 +199,8 @@
     <p>También puede arrastrar el archivo sobre la ventana, o probar con los ejemplos del menú Archivo.</p>
 
     <h3>2. Generación de las voces</h3>
-    <p>Al abrir la partitura, Corale genera una pista cantada para cada voz (por ejemplo, Soprano, Contralto, Tenor y Bajo). Si un pentagrama tiene dos voces, se separan en dos pistas. La barra de estado muestra el avance y el lector de pantalla anuncia cuando está listo. Si cambia la velocidad, el transporte, el idioma o el timbre de una voz, las voces se vuelven a generar.</p>
-    <p>Las repeticiones, las casillas de 1.ª y 2.ª vez y las estrofas se respetan: en la segunda vuelta se canta la segunda estrofa. Las notas sin sílaba que siguen a una sílaba se cantan como melisma. En español, italiano, latín y otras lenguas romances, cuando una palabra termina con la misma vocal con que empieza la siguiente, Corale las une como lo haría un coro: «donde estás» se canta «donde stás». La letra en pantalla no cambia.</p>
+    <p>Al abrir la partitura, Corole genera una pista cantada para cada voz (por ejemplo, Soprano, Contralto, Tenor y Bajo). Si un pentagrama tiene dos voces, se separan en dos pistas. La barra de estado muestra el avance y el lector de pantalla anuncia cuando está listo. Si cambia la velocidad, el transporte, el idioma o el timbre de una voz, las voces se vuelven a generar.</p>
+    <p>Las repeticiones, las casillas de 1.ª y 2.ª vez y las estrofas se respetan: en la segunda vuelta se canta la segunda estrofa. Las notas sin sílaba que siguen a una sílaba se cantan como melisma. En español, italiano, latín y otras lenguas romances, cuando una palabra termina con la misma vocal con que empieza la siguiente, Corole las une como lo haría un coro: «donde estás» se canta «donde stás». La letra en pantalla no cambia.</p>
     <p>Para estudiar solo las alturas y el ritmo, en Ajustes elija <b>Cantar: con vocal</b> (o pulse Alt+Mayús+V). Las sopranos y contraltos cantan con «a» y los tenores y bajos con «o»; en el mezclador se puede elegir otra vocal para cada voz. Las voces que no tienen letra también cantan. La letra sigue en pantalla.</p>
 
     <h3>3. Reproducir y moverse</h3>
@@ -216,10 +216,10 @@
     <p>En <b>Archivo</b> puede exportar la mezcla actual como audio <b>WAV</b> o <b>MP3</b>, la partitura como <b>MIDI</b> (una pista por voz, con la letra) y como <b>MusicXML</b>, que es útil para pasar a MuseScore una partitura importada desde braille. Dentro de la página publicada en Claude cada archivo se guarda dentro de un .zip.</p>
 
     <h3>7. Braille musical (BRF)</h3>
-    <p>Corale lee música braille según la signografía musical internacional: notas y valores, signos de octava, alteraciones, armadura, compás (por ejemplo #D4 es 4/4, y también el signo de compasillo), puntillos, ligaduras de prolongación, ligaduras de expresión (se usan como melismas), tresillos, matices, repeticiones y doble barra final. Cada espacio separa compases.</p>
+    <p>Corole lee música braille según la signografía musical internacional: notas y valores, signos de octava, alteraciones, armadura, compás (por ejemplo #D4 es 4/4, y también el signo de compasillo), puntillos, ligaduras de prolongación, ligaduras de expresión (se usan como melismas), tresillos, matices, repeticiones y doble barra final. Cada espacio separa compases.</p>
     <p>Se admite el formato vocal habitual: un número de compás, luego la letra en braille sin abreviar (una o varias líneas) y después la línea de música, que puede empezar con un prefijo como &gt;S'.</p>
     <p>También se admite el formato coral línea por línea: en cada bloque, una línea de música por parte con su prefijo (&gt;S', &gt;A' o &gt;CO', &gt;T', &gt;B', &gt;CB'; &gt;SA' cuando soprano y contralto cantan al unísono; dos &gt;T' seguidos para tenor 1 y tenor 2), y la letra antes, sin prefijo si es común a todas las partes, o con las partes a las que corresponde (,S' o ,T',B'). Cada parte se convierte en una voz del mezclador, con su nombre. Los rellenos de alineación ('''') se ignoran. Los encabezados centrados se usan para el título, el tempo (Andante, Allegro…), la armadura y el compás.</p>
-    <p>La letra se reparte sola entre las notas de cada línea: si las sílabas van separadas con guiones se respetan; si no, Corale divide las palabras (en español o en inglés) para que coincidan con el número de notas. El idioma de la letra se detecta y se elige automáticamente.</p>
+    <p>La letra se reparte sola entre las notas de cada línea: si las sílabas van separadas con guiones se respetan; si no, Corole divide las palabras (en español o en inglés) para que coincidan con el número de notas. El idioma de la letra se detecta y se elige automáticamente.</p>
     <p>El acompañamiento de piano en formato compás sobre compás también se importa: mano derecha (.&gt;) y mano izquierda (_&gt;), acordes escritos con intervalos (incluida la duplicación de intervalos), voces simultáneas en una mano (acorde de compás completo y de parte de compás), ligaduras de acorde y el signo de repetición. El piano aparece en el mezclador como una sola pista de acompañamiento, con sus acordes completos, y en la partitura como gran pentagrama.</p>
     <p>Se reconocen también los grupos irregulares (tresillos, seisillos), los calderones, las articulaciones (que no cambian el canto) y los cambios de compás, incluso si sólo están escritos en el piano. Aún no se admiten el braille abreviado (estenografía) en la letra ni los adornos; las notas de adorno se omiten. Si algo no coincide, los avisos aparecen bajo la barra de estado, y con Archivo › Exportar MusicXML puede revisar el resultado en MuseScore.</p>
 
@@ -229,7 +229,7 @@
     <p>Las demás funciones usan Alt+Mayús y la letra, porque con Ctrl+Mayús chocarían con atajos del navegador (por ejemplo, Ctrl+Mayús+T reabre una pestaña y Ctrl+Mayús+P abre una ventana privada en Firefox). Todos los atajos con Alt+Mayús siguen funcionando. En <b>Ayuda › Atajos de teclado</b> está la lista completa. En Mac, Alt es la tecla Opción.</p>
 
     <h3>Limitaciones</h3>
-    <p>La voz es sintética (eSpeak NG): la afinación y el ritmo son exactos, pero el timbre suena robótico. No interpreta D.C., D.S. ni Coda. La importación de braille es experimental: si algo no coincide, Corale muestra advertencias bajo la barra de estado.</p>
+    <p>La voz es sintética (eSpeak NG): la afinación y el ritmo son exactos, pero el timbre suena robótico. No interpreta D.C., D.S. ni Coda. La importación de braille es experimental: si algo no coincide, Corole muestra advertencias bajo la barra de estado.</p>
   </div>
   <p style="margin-top:1rem"><button class="primary" data-close>Cerrar</button></p>
 </dialog>
@@ -254,11 +254,11 @@
 </dialog>
 
 <dialog id="dlgAbout" aria-labelledby="hAbout">
-  <h2 id="hAbout">Acerca de Corale</h2>
+  <h2 id="hAbout">Acerca de Corole</h2>
   <div class="guide">
-    <p>Corale es una herramienta de ensayo coral: convierte partituras en voces cantadas con su letra.</p>
+    <p>Corole es una herramienta de ensayo coral: convierte partituras en voces cantadas con su letra.</p>
     <p>Usa componentes de código abierto: <b>eSpeak NG</b> (síntesis de voz, GPL-3.0, compilado a WebAssembly por el proyecto Echogarden), <b>Verovio</b> (dibujo de la partitura, LGPL-3.0) y <b>lamejs</b> (codificación MP3, LGPL-3.0). El piano es el <b>Salamander Grand Piano</b> (Yamaha C5), grabado por Alexander Holm y publicado con licencia Creative Commons Atribución 3.0.</p>
-    <p>Corale no edita partituras. Para crearlas o corregirlas, use MuseScore o un editor de braille musical.</p>
+    <p>Corole no edita partituras. Para crearlas o corregirlas, use MuseScore o un editor de braille musical.</p>
   </div>
   <p style="margin-top:1rem"><button class="primary" data-close>Cerrar</button></p>
 </dialog>

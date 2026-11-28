@@ -1,6 +1,6 @@
-# Corale
+# Corole
 
-**Ensayo coral accesible con voz sintética.** Corale convierte una partitura coral en voces cantadas con su letra, para que cada estudiante escuche y practique su parte. Fue creada pensando en estudiantes con discapacidad visual o baja visión de la Universidad Nacional de Música (Lima, Perú), y sirve a cualquier corista que quiera estudiar su voz fuera del ensayo.
+**Ensayo coral accesible con voz sintética.** Corole convierte una partitura coral en voces cantadas con su letra, para que cada estudiante escuche y practique su parte. Fue creada pensando en estudiantes con discapacidad visual o baja visión de la Universidad Nacional de Música (Lima, Perú), y sirve a cualquier corista que quiera estudiar su voz fuera del ensayo.
 
 **Usar en línea:** https://coro-accesible.github.io
 
@@ -50,7 +50,7 @@ En pruebas con 11 obras reales, las voces coincidieron entre 91 % y 100 % de las
 
 - La voz gratuita (eSpeak NG) tiene afinación y ritmo exactos, pero su timbre suena robótico.
 - No interpreta D.C., D.S. ni Coda.
-- Corale no es un editor: para crear o corregir partituras use MuseScore o un editor de braille musical.
+- Corole no es un editor: para crear o corregir partituras use MuseScore o un editor de braille musical.
 
 ## Estructura del repositorio
 
@@ -71,7 +71,7 @@ Para reconstruir después de modificar `fuente/`: `python3 fuente/build.py`.
 
 ## Licencia y créditos
 
-Corale se distribuye bajo la licencia **GNU GPL versión 3** (ver `LICENSE`), la misma de su motor de voz.
+Corole se distribuye bajo la licencia **GNU GPL versión 3** (ver `LICENSE`), la misma de su motor de voz.
 
 Usa estos componentes de código abierto:
 

@@ -596,7 +596,7 @@ function brfToMusicXML(raw, fileName = '', opts = {}) {
   let x = '<?xml version="1.0" encoding="UTF-8"?>\n<score-partwise version="4.0">\n';
   const ttl = title || fileName.replace(/\.[^.]+$/, '');
   x += `<work><work-title>${brfEsc(ttl)}</work-title></work>\n`;
-  x += '<identification><encoding><software>Corale (importación BRF)</software></encoding></identification>\n';
+  x += '<identification><encoding><software>Corole (importación BRF)</software></encoding></identification>\n';
   x += '<part-list>';
   vParts.forEach((p, pi) => { x += `<score-part id="P${pi + 1}"><part-name>${brfEsc(p.name)}</part-name></score-part>`; });
   const pianoId = 'P' + (vParts.length + 1);

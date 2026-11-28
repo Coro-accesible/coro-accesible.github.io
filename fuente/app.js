@@ -25,8 +25,8 @@ let ctx = null, master = null, metroGain = null;
 let sources = [];
 const nodes = new Map();
 
-const prefs = (() => { try { return JSON.parse(localStorage.getItem('corale-prefs') || localStorage.getItem('cantor-prefs') || '{}'); } catch (e) { return {}; } })();
-function savePrefs() { try { localStorage.setItem('corale-prefs', JSON.stringify(prefs)); } catch (e) { /* sin almacenamiento */ } }
+const prefs = (() => { try { return JSON.parse(localStorage.getItem('corole-prefs') || localStorage.getItem('corale-prefs') || localStorage.getItem('cantor-prefs') || '{}'); } catch (e) { return {}; } })();
+function savePrefs() { try { localStorage.setItem('corole-prefs', JSON.stringify(prefs)); } catch (e) { /* sin almacenamiento */ } }
 
 function say(msg, urgent = false) {
   const el = urgent ? $('liveA') : $('live');
@@ -78,7 +78,7 @@ async function startEngine() {
   }
 }
 // Piano de cola grabado (Salamander Grand Piano, CC BY 3.0). Se decodifica aquí, a la
-// frecuencia de muestreo de Corale, y se entrega al motor, que toca con él el
+// frecuencia de muestreo de Corole, y se entrega al motor, que toca con él el
 // acompañamiento y el piano guía. Si no carga, el motor usa su sonido sintetizado.
 let pianoReady = Promise.resolve();
 async function loadPiano() {
@@ -1099,10 +1099,10 @@ const MENUS = [
     { label: 'Ir a los ajustes', act: () => focusPanel('panelSettings', 'hSet') },
   ] },
   { label: 'Ayuda', items: [
-    { label: 'Cómo funciona Corale', keys: 'Alt+Mayús+H', aria: 'Alt+Shift+H', act: () => openDialog('dlgGuide') },
+    { label: 'Cómo funciona Corole', keys: 'Alt+Mayús+H', aria: 'Alt+Shift+H', act: () => openDialog('dlgGuide') },
     { label: 'Atajos de teclado', keys: 'Alt+Mayús+K', aria: 'Alt+Shift+K', act: () => openDialog('dlgKeys') },
     { label: 'Estado del sistema', act: () => openDialog('dlgDiag') },
-    { label: 'Acerca de Corale', act: () => openDialog('dlgAbout') },
+    { label: 'Acerca de Corole', act: () => openDialog('dlgAbout') },
   ] },
 ];
 function speedBy(d) { setSpeed(st.speed * 100 + d); say(`Velocidad ${Math.round(st.speed * 100)} por ciento`); }
@@ -1256,7 +1256,7 @@ const KEYS = [
   ['KeyW', 'Alt+Mayús+W', 'Exportar audio WAV', () => doExport('wav')],
   ['KeyE', 'Alt+Mayús+E', 'Exportar audio MP3', () => doExport('mp3')],
   ['KeyI', 'Alt+Mayús+I', 'Exportar MIDI', () => doExport('mid')],
-  ['KeyH', 'Alt+Mayús+H', 'Cómo funciona Corale', () => openDialog('dlgGuide')],
+  ['KeyH', 'Alt+Mayús+H', 'Cómo funciona Corole', () => openDialog('dlgGuide')],
   ['KeyK', 'Alt+Mayús+K', 'Lista de atajos de teclado', () => openDialog('dlgKeys')],
 ];
 // teclas sueltas dentro de la barra de reproducción

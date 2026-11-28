@@ -1,4 +1,4 @@
-// Corale — lectura de MusicXML / MXL
+// Corole — lectura de MusicXML / MXL
 // Devuelve una estructura con compases, secuencia desplegada (repeticiones),
 // mapa de tempo y pistas (una por parte/voz) con notas y letra.
 

@@ -1,4 +1,4 @@
-// Corale — motor de canto (Web Worker, módulo ES)
+// Corole — motor de canto (Web Worker, módulo ES)
 // espeak-ng (wasm) dice cada palabra a la altura de sus notas; luego un PSOLA
 // ajusta afinación exacta, alarga la vocal y añade vibrato.
 
